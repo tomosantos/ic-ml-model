@@ -8,8 +8,8 @@ import os
 from tqdm import tqdm
 
 urls = [
-    'https://dados.agricultura.gov.br/dataset/baefdc68-9bad-4204-83e8-f2888b79ab48/resource/54e04a6b-15b3-4bda-a330-b8e805deabe4/download/dados_abertos_psr_2016a2024csv.csv',
-    'https://dados.agricultura.gov.br/dataset/baefdc68-9bad-4204-83e8-f2888b79ab48/resource/ac7e4351-974f-4958-9294-627c5cbf289a/download/dados_abertos_psr_2025csv.csv'
+    'https://dados.agricultura.gov.br/dataset/baefdc68-9bad-4204-83e8-f2888b79ab48/resource/e6f95018-6c19-426a-9a62-fc9e5bfc721b/download/dados_abertos_psr_2016a2024.xlsx',
+    'https://dados.agricultura.gov.br/dataset/baefdc68-9bad-4204-83e8-f2888b79ab48/resource/b904117d-b758-406d-92ef-4c7762017c61/download/dados_abertos_psr_2025.xlsx'
 ]
 
 path = '/Volumes/00_raw/data/seguro_rural'
