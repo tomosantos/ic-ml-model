@@ -215,7 +215,7 @@ df = df.withColumn('duracao', datediff(F.col('DT_FIM_VIGENCIA'), F.col('DT_INICI
 # Normaliza espaços internos (equivalente ao str.split().str.join(' ') do pandas)
 df = df.withColumn(
   'EVENTO_PREPONDERANTE',
-  F.regexp_replace(F.trim(F.col('EVENTO_PREPONDERANTE')), r'\s+', ' ')
+  F.trim(F.regexp_replace(F.col('EVENTO_PREPONDERANTE'), r'\s+', ' '))
 )
 df = df.withColumn(
   'EVENTO_PREPONDERANTE',
@@ -287,9 +287,6 @@ df = df.withColumn('tipo', F.coalesce(tipo_expr[F.col('tipo')], F.col('tipo')))
 # COMMAND ----------
 
 # DBTITLE 1,Mapeamento da coluna evento
-# Equivalente PySpark de str.split().str.join(' '): tokeniza em qualquer espaço e rejoina com ' '
-df = df.withColumn('evento', F.array_join(F.split(F.col('evento'), r'\s+'), ' '))
-
 evento_expr = create_map([F.lit(x) for x in chain(*EVENTO_MAP.items())])
 df = df.withColumn('evento', F.coalesce(evento_expr[F.col('evento')], F.col('evento')))
 
