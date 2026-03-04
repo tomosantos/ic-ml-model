@@ -271,6 +271,13 @@ if 'animal' in df.columns:
 if 'mun' in df.columns:
   df = df.withColumn('mun', F.col('mun').cast('int'))
 
+# Colunas numéricas contínuas: converte para double (necessário para operações aritméticas)
+colunas_double = ['area', 'prod_est', 'prod_seg', 'nivel_cob', 'total_seg',
+                  'premio', 'taxa', 'subvencao', 'indenizacao']
+for col_name in colunas_double:
+  if col_name in df.columns:
+    df = df.withColumn(col_name, F.col(col_name).cast('double'))
+
 # COMMAND ----------
 
 # DBTITLE 1,Mapeamento da coluna tipo
