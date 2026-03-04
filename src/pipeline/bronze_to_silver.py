@@ -214,13 +214,14 @@ df = df.withColumn('duracao', datediff(F.col('DT_FIM_VIGENCIA'), F.col('DT_INICI
 # DBTITLE 1,Limpeza da coluna EVENTO_PREPONDERANTE
 # Normaliza espaços internos (equivalente ao str.split().str.join(' ') do pandas)
 df = df.withColumn(
-  'EVENTO_PREPONDERANTE',
-  F.trim(F.regexp_replace(F.col('EVENTO_PREPONDERANTE'), r'\s+', ' '))
+    "EVENTO_PREPONDERANTE",
+    F.trim(F.regexp_replace(F.col('EVENTO_PREPONDERANTE'), r'[\s\u00a0]+', ' '))
 )
 df = df.withColumn(
-  'EVENTO_PREPONDERANTE',
-  F.when(F.col('EVENTO_PREPONDERANTE').isNull(), F.lit('0'))
-   .otherwise(F.col('EVENTO_PREPONDERANTE'))
+    "EVENTO_PREPONDERANTE",
+    F.when(F.col("EVENTO_PREPONDERANTE").isNull(), F.lit("0")).otherwise(
+        F.col("EVENTO_PREPONDERANTE")
+    ),
 )
 
 # COMMAND ----------
@@ -480,7 +481,3 @@ display(df)
 )
 
 print(f"Escrita concluída: {df.count()} linhas gravadas em {TABLE_SILVER_CLEANED}")
-
-# COMMAND ----------
-
-
