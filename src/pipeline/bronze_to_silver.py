@@ -389,17 +389,17 @@ cod_pd = cod_pd[['mun', 'nome_mun', 'uf']].copy()
 cod_pd['nome_mun'] = cod_pd['nome_mun'].apply(simplificar_nomes_pd)
 cod_pd = cod_pd.rename(columns={'mun': 'mun_ibge', 'nome_mun': 'nome_mun_cod'})
 
-cod_spark = spark.createDataFrame(cod_pd)
+cod_spark = spark.createDataFrame(cod_pd).withColumnRenamed('uf', 'uf_ibge')
 
 # Join: preenche código IBGE a partir do nome normalizado + UF
 df = (df
   .join(
     F.broadcast(cod_spark),
-    (df['nome_mun'] == cod_spark['nome_mun_cod']) & (df['uf'] == cod_spark['uf']),
+    (df['nome_mun'] == cod_spark['nome_mun_cod']) & (df['uf'] == cod_spark['uf_ibge']),
     'left'
   )
   .withColumn('mun', F.coalesce(F.col('mun_ibge').cast('int'), F.col('mun').cast('int')))
-  .drop('mun_ibge', 'nome_mun_cod')
+  .drop('mun_ibge', 'nome_mun_cod', 'uf_ibge')
 )
 
 # COMMAND ----------
@@ -417,7 +417,7 @@ try:
   br_pd['nome_mun_sede'] = br_pd['nome_mun_sede'].apply(simplificar_nomes_pd)
   br_pd = br_pd.rename(columns={'mun': 'mun_dist', 'nome_mun_sede': 'nome_mun_correto'})
 
-  br_spark = spark.createDataFrame(br_pd)
+  br_spark = spark.createDataFrame(br_pd).withColumnRenamed('uf', 'uf_dist')
 
   # Registra apenas apólices ainda sem código IBGE após o join principal
   df_com_mun = df.filter(F.col('mun').isNotNull())
@@ -426,12 +426,12 @@ try:
   df_sem_mun = (df_sem_mun
     .join(
       F.broadcast(br_spark),
-      (df_sem_mun['nome_mun'] == br_spark['nome_dist']) & (df_sem_mun['uf'] == br_spark['uf']),
+      (df_sem_mun['nome_mun'] == br_spark['nome_dist']) & (df_sem_mun['uf'] == br_spark['uf_dist']),
       'left'
     )
     .withColumn('mun', F.col('mun_dist').cast('int'))
     .withColumn('nome_mun', F.coalesce(F.col('nome_mun_correto'), F.col('nome_mun')))
-    .drop('mun_dist', 'nome_mun_correto', 'nome_dist')
+    .drop('mun_dist', 'nome_mun_correto', 'nome_dist', 'uf_dist')
   )
 
   df = df_com_mun.unionByName(df_sem_mun)

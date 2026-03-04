@@ -18,7 +18,7 @@ TABLE_SILVER_CLEANED    = '02_silver.seg_rural.seg_cleaned'
 
 # Volume com arquivo auxiliar do IBGE de distritos
 # Fonte: https://geoftp.ibge.gov.br/organizacao_do_territorio/estrutura_territorial/divisao_territorial/2022/
-DISTRITOS_PATH = '/Volumes/01_bronze/seg_rural/raw/RELATORIO_DTB_BRASIL_DISTRITO.xls'
+DISTRITOS_PATH = '/Volumes/00_raw/seg_rural/raw/RELATORIO_DTB_BRASIL_DISTRITO.xls'
 
 # CSV público com códigos de municípios (Patrícia Siqueira / IBGE)
 IBGE_CSV_URL = 'https://patriciasiqueira.github.io/arquivos/codigos-mun.csv'
