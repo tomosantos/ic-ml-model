@@ -274,7 +274,7 @@ if 'mun' in df.columns:
 
 # Colunas numéricas contínuas: converte para double (necessário para operações aritméticas)
 colunas_double = ['area', 'prod_est', 'prod_seg', 'nivel_cob', 'total_seg',
-                  'premio', 'taxa', 'subvencao', 'indenizacao']
+                  'premio', 'taxa', 'subvencao', 'indenizacao', 'lat', 'lon']
 for col_name in colunas_double:
   if col_name in df.columns:
     df = df.withColumn(col_name, F.col(col_name).cast('double'))

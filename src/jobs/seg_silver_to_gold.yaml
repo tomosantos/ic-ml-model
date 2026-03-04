@@ -1,0 +1,40 @@
+resources:
+  jobs:
+    seg_silver_to_gold:
+      name: seg_silver_to_gold
+      tasks:
+        - task_key: silver_to_gold
+          notebook_task:
+            notebook_path: src/pipeline/silver_to_gold
+            source: GIT
+        - task_key: fs_historico_municipio
+          depends_on:
+            - task_key: silver_to_gold
+          notebook_task:
+            notebook_path: src/feature_store/compute_feature_store
+            base_parameters:
+              feature: fs_historico_municipio
+            source: GIT
+        - task_key: fs_risco_cultura_uf
+          depends_on:
+            - task_key: silver_to_gold
+          notebook_task:
+            notebook_path: src/feature_store/compute_feature_store
+            base_parameters:
+              feature: fs_risco_cultura_uf
+            source: GIT
+        - task_key: fs_apolice_financeiro
+          depends_on:
+            - task_key: silver_to_gold
+          notebook_task:
+            notebook_path: src/feature_store/compute_feature_store
+            base_parameters:
+              feature: fs_apolice_financeiro
+            source: GIT
+      git_source:
+        git_url: https://github.com/tomosantos/ic-ml-model
+        git_provider: gitHub
+        git_branch: main
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
