@@ -49,24 +49,24 @@ COLUNAS_RETIRAR = [
 # -----------------------------------------------------------------------------
 
 RENAME_MAP = {
-  'NM_RAZAO_SOCIAL':         'seguradora',
-  'NM_MUNICIPIO':            'nome_mun',
-  'SG_UF':                   'uf',
-  'CD_TIPO_SEGURO':          'tipo',
-  'NM_CULTURA_GLOBAL':       'cultura',
-  'NR_AREA_TOTAL':           'area',
-  'QT_ANIMAIS':              'animal',
-  'VL_PRODUCAO_ESTIMADA':    'prod_est',
-  'VL_PRODUCAO_SEGURADA':    'prod_seg',
-  'PC_NIVEL_COBERTURA':      'nivel_cob',
-  'VL_IMPORTANCIA_SEGURADA': 'total_seg',
-  'VL_PREMIO_LIQUIDO':       'premio',
-  'PC_TAXA':                 'taxa',
-  'VL_SUBVENCAO_FEDERAL':    'subvencao',
-  'NR_APOLICE':              'apolice',
-  'CD_MUNICIPIO':            'mun',
-  'VALOR_INDENIZACAO':       'indenizacao',  # coluna já normalizada (sem acento)
-  'EVENTO_PREPONDERANTE':    'evento',
+  'NM_RAZAO_SOCIAL':           'seguradora',
+  'NM_MUNICIPIO_PROPRIEDADE':  'nome_mun',
+  'SG_UF_PROPRIEDADE':         'uf',
+  'NM_CLASSIF_PRODUTO':        'tipo',
+  'NM_CULTURA_GLOBAL':         'cultura',
+  'NR_AREA_TOTAL':             'area',
+  'NR_ANIMAL':                 'animal',
+  'NR_PRODUTIVIDADE_ESTIMADA': 'prod_est',
+  'NR_PRODUTIVIDADE_SEGURADA': 'prod_seg',
+  'NivelDeCobertura':          'nivel_cob',
+  'VL_LIMITE_GARANTIA':        'total_seg',
+  'VL_PREMIO_LIQUIDO':         'premio',
+  'PE_TAXA':                   'taxa',
+  'VL_SUBVENCAO_FEDERAL':      'subvencao',
+  'NR_APOLICE':                'apolice',
+  'CD_GEOCMU':                 'mun',
+  'VALOR_INDENIZACAO':         'indenizacao',  # coluna já normalizada (sem acento)
+  'EVENTO_PREPONDERANTE':      'evento',
 }
 
 # -----------------------------------------------------------------------------
