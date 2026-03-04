@@ -6,7 +6,7 @@ import unicodedata
 import pandas as pd
 from itertools import chain
 from pyspark.sql import functions as F
-from pyspark.sql.functions import to_date, datediff, create_map
+from pyspark.sql.functions import to_date, datediff, create_map, split, array_join
 from pyspark.sql.types import StringType, IntegerType, DoubleType
 
 sys.path.insert(0, '../lib')
@@ -287,6 +287,9 @@ df = df.withColumn('tipo', F.coalesce(tipo_expr[F.col('tipo')], F.col('tipo')))
 # COMMAND ----------
 
 # DBTITLE 1,Mapeamento da coluna evento
+# Equivalente PySpark de str.split().str.join(' '): tokeniza em qualquer espaço e rejoina com ' '
+df = df.withColumn('evento', F.array_join(F.split(F.col('evento'), r'\s+'), ' '))
+
 evento_expr = create_map([F.lit(x) for x in chain(*EVENTO_MAP.items())])
 df = df.withColumn('evento', F.coalesce(evento_expr[F.col('evento')], F.col('evento')))
 
