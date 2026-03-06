@@ -76,3 +76,9 @@ print(f"✓ Features gravadas em {TABLE_GOLD_FEATURES}  ({df_features.count():,}
 print(f"✓ Labels   gravadas em {TABLE_GOLD_LABELS}  ({df_labels.count():,} linhas)")
 
 # COMMAND ----------
+
+# DBTITLE 1,Validação Anti-Leakage
+leakage = set(COLUNAS_LABELS) & set(df_features.columns) - {'apolice', 'dt_inicio_vigencia'}
+assert len(leakage) == 0, f"Data leakage detectado: {leakage}"
+
+# COMMAND ----------
