@@ -25,10 +25,16 @@ dbutils.widgets.text('feature', 'fs_historico_municipio')
 dbutils.widgets.text('dt_ref',  '')
 
 feature = dbutils.widgets.get('feature')
-dt_ref  = dbutils.widgets.get('dt_ref') or str(datetime.date.today())
+_dt_ref_raw = dbutils.widgets.get('dt_ref') or str(datetime.date.today())
 
-print(f"feature : {feature}")
-print(f"dt_ref  : {dt_ref}")
+# Normaliza para o primeiro dia do mês — todas as Feature Store tables usam
+# granularidade mensal (DATE_TRUNC('MONTH', dt_inicio_vigencia)). Sem isso,
+# o FeatureLookup retorna features nulas silenciosas ao fazer o join de treino.
+dt_ref = str(datetime.date.fromisoformat(_dt_ref_raw).replace(day=1))
+
+print(f"feature      : {feature}")
+print(f"dt_ref (raw) : {_dt_ref_raw}")
+print(f"dt_ref (norm): {dt_ref}")
 
 # COMMAND ----------
 

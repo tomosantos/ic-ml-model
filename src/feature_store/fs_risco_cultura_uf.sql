@@ -3,7 +3,9 @@
 -- Feature Store — Risco base por cultura e estado
 --
 -- Chave de entidade : (uf, tipo_cultura)
--- Referência temporal: {dt_ref}
+-- Referência temporal: {dt_ref}  — deve ser o PRIMEIRO DIA DO MÊS.
+--   Convenção: dt_ref = DATE_TRUNC('MONTH', dt_inicio_vigencia)
+--   Normalização garantida em compute_feature_store.py antes de formatar.
 --
 -- Propósito: fornece uma linha de base de risco para municípios com poucos
 -- dados históricos (fallback via hierarquia estado → município).

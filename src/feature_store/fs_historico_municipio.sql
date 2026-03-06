@@ -3,11 +3,13 @@
 -- Feature Store — Histórico de sinistros e severidade por município
 --
 -- Chave de entidade : mun  (código IBGE do município)
--- Referência temporal: {dt_ref}  (data de início da apólice sendo avaliada)
+-- Referência temporal: {dt_ref}  — deve ser o PRIMEIRO DIA DO MÊS.
+--   Convenção: dt_ref = DATE_TRUNC('MONTH', dt_inicio_vigencia)
+--   Normalização garantida em compute_feature_store.py antes de formatar.
 --
 -- Uso:
 --   query = open('fs_historico_municipio.sql').read()
---   df = spark.sql(query.format(dt_ref='2024-01-01'))
+--   df = spark.sql(query.format(dt_ref='2024-01-01'))  # sempre dia 1
 -- =============================================================================
 
 WITH tb_historico AS (

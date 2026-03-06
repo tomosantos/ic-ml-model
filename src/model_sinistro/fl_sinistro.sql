@@ -2,8 +2,11 @@
 -- fl_sinistro.sql
 -- Definição da variável resposta (label) para o modelo de sinistro
 --
--- A data de referência é dt_inicio_vigencia: features históricas devem ser
--- calculadas olhando para o passado a partir DESTA data.
+-- A data de referência é o PRIMEIRO DIA DO MÊS de dt_inicio_vigencia.
+-- Convenção: dtRef = DATE_TRUNC('MONTH', dt_inicio_vigencia)
+-- Isso alinha o join com as Feature Store tables (fs_apolice_financeiro,
+-- fs_historico_municipio, fs_risco_cultura_uf), que também usam granularidade
+-- mensal — evitando features nulas silenciosas no FeatureLookup.
 --
 -- Apenas apólices com ciclo completo (dt_fim_vigencia < current_date) são
 -- incluídas para garantir que o desfecho seja definitivo no treino.
@@ -14,7 +17,8 @@ WITH tb_labels AS (
         apolice,
 
         -- Referência temporal para lookup na Feature Store
-        dt_inicio_vigencia                              AS dtRef,
+        -- dtRef = primeiro dia do mês de início de vigência (granularidade mensal)
+        DATE_TRUNC('MONTH', dt_inicio_vigencia)         AS dtRef,
 
         -- ── Variável resposta principal (classificação binária) ───────────────
         CASE

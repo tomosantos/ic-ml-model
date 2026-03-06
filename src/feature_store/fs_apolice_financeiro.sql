@@ -3,7 +3,11 @@
 -- Feature Store — Engenharia financeira da apólice
 --
 -- Chave de entidade : apolice
--- Referência temporal: dt_inicio_vigencia (já embutida na linha)
+-- Referência temporal: dt_ref = DATE_TRUNC('MONTH', dt_inicio_vigencia)
+--
+-- Convenção: dtRef é sempre o primeiro dia do mês de início da vigência.
+-- Isso garante alinhamento com fs_historico_municipio e fs_risco_cultura_uf,
+-- que também operam em granularidade mensal, permitindo FeatureLookup correto.
 --
 -- Features derivadas exclusivamente de informações disponíveis NO ATO da
 -- contratação — sem qualquer informação pós-contratual.
@@ -11,7 +15,7 @@
 
 SELECT
     apolice,
-    dt_inicio_vigencia                          AS dtRef,
+    DATE_TRUNC('MONTH', dt_inicio_vigencia)     AS dtRef,
 
     -- ── Features temporais ───────────────────────────────────────────────────
     -- Mês de plantio codificado numericamente (1–12); a codificação cíclica
