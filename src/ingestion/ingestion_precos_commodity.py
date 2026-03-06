@@ -152,7 +152,7 @@ df_spark = spark.createDataFrame(df_precos) \
     .withColumn('cultura',      F.col('cultura').cast(StringType())) \
     .withColumn('preco_rs_saca', F.col('preco_rs_saca').cast(DoubleType()))
 
-spark.sql("CREATE SCHEMA IF NOT EXISTS 00_raw.mercado")
+spark.sql("CREATE SCHEMA IF NOT EXISTS 01_bronze.seg_rural")
 
 df_spark.write \
     .format('delta') \

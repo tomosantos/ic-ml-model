@@ -21,10 +21,13 @@ TABLE_GOLD_FEATURES     = '03_gold.seg_rural.fs_seguro_features'
 TABLE_GOLD_LABELS       = '03_gold.seg_rural.fs_seguro_labels'
 
 # Feature Store — tabelas de agregações point-in-time
-TABLE_FS_HISTORICO_MUN      = 'feature_store.seguro.fs_historico_municipio'
-TABLE_FS_RISCO_CULTURA_UF   = 'feature_store.seguro.fs_risco_cultura_uf'
-TABLE_FS_APOLICE_FINANCEIRO = 'feature_store.seguro.fs_apolice_financeiro'
-TABLE_FS_CLIMA_MUNICIPIO    = 'feature_store.seguro.fs_clima_municipio'
+TABLE_FS_HISTORICO_MUN             = 'feature_store.seguro.fs_historico_municipio'
+TABLE_FS_RISCO_CULTURA_UF          = 'feature_store.seguro.fs_risco_cultura_uf'
+TABLE_FS_APOLICE_FINANCEIRO        = 'feature_store.seguro.fs_apolice_financeiro'
+TABLE_FS_CLIMA_MUNICIPIO           = 'feature_store.seguro.fs_clima_municipio'
+TABLE_FS_RISCO_SEGURADORA_CULTURA  = 'feature_store.seguro.fs_risco_seguradora_cultura'
+TABLE_FS_ANOMALIA_TAXA             = 'feature_store.seguro.fs_anomalia_taxa'
+TABLE_FS_CONCENTRACAO_CARTEIRA     = 'feature_store.seguro.fs_concentracao_carteira'
 
 # Unity Catalog — Dados Externos (Clima e Mercado)
 TABLE_RAW_ONI     = '01_bronze.seg_rural.oni_mensal'

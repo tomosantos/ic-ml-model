@@ -3,7 +3,7 @@
 # Ingestão da série histórica do ONI (Oceanic Niño Index) — NOAA/CPC
 #
 # Fonte: https://cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php
-# Destino: 00_raw.clima.oni_mensal  (ano INT, mes INT, oni_valor DOUBLE, fase STRING)
+# Destino: 01_bronze.seg_rural.oni_mensal  (ano INT, mes INT, oni_valor DOUBLE, fase STRING)
 #
 # Fase:
 #   el_nino  →  ONI >= +0.5

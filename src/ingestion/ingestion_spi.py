@@ -13,7 +13,7 @@
 #      para o bounding box Brasil via cdsapi.
 #   2. Interpolação para centroides dos municípios (tabela IBGE 2022).
 #   3. Cálculo do SPI-3 e SPI-6 por município usando scipy.stats.
-#   4. Escrita em 00_raw.clima.spi_municipio_mensal.
+#   4. Escrita em 01_bronze.seg_rural.spi_municipio_mensal.
 #
 # Pré-requisito: secret scope 'cds' com chave 'cds_api_key' configurada no
 #   Databricks. Formato: '<uid>:<key>' (conforme ~/.cdsapirc).
