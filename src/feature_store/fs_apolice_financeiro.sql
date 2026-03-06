@@ -22,14 +22,27 @@ SELECT
     -- seno/cosseno é aplicada no pipeline de treino para evitar ruptura
     -- entre dezembro e janeiro.
     MONTH(dt_inicio_vigencia)                   AS nrMesPlantio,
+    QUARTER(dt_inicio_vigencia)                 AS nrTrimestre,
     YEAR(dt_inicio_vigencia)                    AS nrAnoPlantio,
     duracao                                     AS nrDuracaoDias,
+    -- Duração normalizada para facilitar comparação entre culturas de ciclo
+    -- curto e longo (1.0 = apólice anual inteira).
+    duracao / 365.0                             AS nrDuracaoRelativa,
+    -- Indicador de safra verão (grãos): meses de set–jan, período em que
+    -- o risco climático difere significativamente da safra inverno/segunda.
+    CASE
+        WHEN MONTH(dt_inicio_vigencia) >= 9
+          OR MONTH(dt_inicio_vigencia) = 1 THEN 1
+        ELSE 0
+    END                                         AS flSafraVerao,
 
     -- ── Densidade e normalização financeira ──────────────────────────────────
-    -- Valor segurado por hectare (normaliza tamanho da propriedade)
+    -- Valor segurado por hectare: indica o patrimônio em risco por unidade
+    -- de área — conceito distinto de nrPremioPorHa (custo do seguro/ha).
     total_seg / NULLIF(area, 0)                 AS nrDensidadeValorSegHa,
 
-    -- Prêmio por hectare
+    -- Custo do seguro por hectare: normaliza a exposição financeira pelo
+    -- tamanho da propriedade; correlaciona com intensidade de uso da terra.
     premio    / NULLIF(area, 0)                 AS nrPremioPorHa,
 
     -- ── Apetite ao risco / risco moral ───────────────────────────────────────
@@ -38,13 +51,22 @@ SELECT
     prod_seg  / NULLIF(prod_est, 0)             AS nrRazaoCoberturaProd,
 
     -- ── Precificação e subsídio ───────────────────────────────────────────────
-    -- Proporção do prêmio coberta pela subvenção federal
-    subvencao / NULLIF(premio, 0)               AS nrProporcaoSubvencao,
+    -- Razão subvenção/prêmio: mede dependência do produtor em subsídio federal;
+    -- alta dependência pode correlacionar com perfil de risco elevado.
+    subvencao / NULLIF(premio, 0)               AS nrRazaoSubvencaoPremio,
 
     -- Taxa da apólice como proxy do risco já precificado pela seguradora
     taxa                                        AS nrTaxaApolice,
 
     -- Nível de cobertura contratado (0–1)
-    nivel_cob                                   AS nrNivelCobertura
+    nivel_cob                                   AS nrNivelCobertura,
+
+    -- ── Pecuária ─────────────────────────────────────────────────────────────
+    -- Intensidade de uso do pasto: área por cabeça de animal segurado.
+    -- NULL para apólices não-pecuárias (animal = 0 ou NULL).
+    CASE
+        WHEN animal > 0
+        THEN area / NULLIF(animal, 0)
+    END                                         AS nrAreaPorAnimal
 
 FROM 02_silver.seg_rural.seg_cleaned
