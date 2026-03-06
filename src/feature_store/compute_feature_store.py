@@ -5,9 +5,7 @@
 #
 # Uso manual:
 #   dbutils.widgets.text('feature', 'fs_historico_municipio')
-#   dbutils.widgets.text('dt_ref',  '')   # vazio = hoje
 import sys
-import datetime
 
 from databricks.feature_engineering import FeatureEngineeringClient
 
@@ -22,19 +20,10 @@ from const import (
 
 # DBTITLE 1,Parâmetros
 dbutils.widgets.text('feature', 'fs_historico_municipio')
-dbutils.widgets.text('dt_ref',  '')
 
 feature = dbutils.widgets.get('feature')
-_dt_ref_raw = dbutils.widgets.get('dt_ref') or str(datetime.date.today())
 
-# Normaliza para o primeiro dia do mês — todas as Feature Store tables usam
-# granularidade mensal (DATE_TRUNC('MONTH', dt_inicio_vigencia)). Sem isso,
-# o FeatureLookup retorna features nulas silenciosas ao fazer o join de treino.
-dt_ref = str(datetime.date.fromisoformat(_dt_ref_raw).replace(day=1))
-
-print(f"feature      : {feature}")
-print(f"dt_ref (raw) : {_dt_ref_raw}")
-print(f"dt_ref (norm): {dt_ref}")
+print(f"feature: {feature}")
 
 # COMMAND ----------
 
@@ -62,7 +51,7 @@ primary_key = PRIMARY_KEYS[feature]
 
 # DBTITLE 1,Execução da Query e Materialização
 sql_path = f'../{feature.replace("fs_", "feature_store/fs_")}.sql'
-query    = open(sql_path).read().format(dt_ref=dt_ref)
+query    = open(sql_path).read()
 
 df = spark.sql(query)
 
@@ -72,7 +61,7 @@ fe.create_table(
     name=dest_table,
     primary_keys=primary_key,
     df=df,
-    description=f"Feature Store — {feature} | dt_ref={dt_ref}",
+    description=f"Feature Store — {feature}",
     schema=df.schema,
 )
 
@@ -82,6 +71,6 @@ fe.write_table(
     mode='merge',
 )
 
-print(f"✓ {dest_table} materializada com {df.count():,} linhas para dt_ref={dt_ref}")
+print(f"✓ {dest_table} materializada com {df.count():,} linhas")
 
 # COMMAND ----------
