@@ -14,6 +14,7 @@ from const import (
     TABLE_FS_HISTORICO_MUN,
     TABLE_FS_RISCO_CULTURA_UF,
     TABLE_FS_APOLICE_FINANCEIRO,
+    TABLE_FS_CLIMA_MUNICIPIO,
 )
 
 # COMMAND ----------
@@ -32,6 +33,7 @@ FEATURE_MAP = {
     'fs_historico_municipio':  TABLE_FS_HISTORICO_MUN,
     'fs_risco_cultura_uf':     TABLE_FS_RISCO_CULTURA_UF,
     'fs_apolice_financeiro':   TABLE_FS_APOLICE_FINANCEIRO,
+    'fs_clima_municipio':      TABLE_FS_CLIMA_MUNICIPIO,
 }
 
 # Chaves primárias de cada tabela (necessárias para o FeatureEngineeringClient)
@@ -39,6 +41,7 @@ PRIMARY_KEYS = {
     'fs_historico_municipio':  ['dtRef', 'mun'],
     'fs_risco_cultura_uf':     ['dtRef', 'uf', 'tipo_cultura'],
     'fs_apolice_financeiro':   ['dtRef', 'apolice'],
+    'fs_clima_municipio':      ['dtRef', 'mun'],
 }
 
 if feature not in FEATURE_MAP:

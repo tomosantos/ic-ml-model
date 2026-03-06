@@ -24,6 +24,25 @@ TABLE_GOLD_LABELS       = '03_gold.seg_rural.fs_seguro_labels'
 TABLE_FS_HISTORICO_MUN      = 'feature_store.seguro.fs_historico_municipio'
 TABLE_FS_RISCO_CULTURA_UF   = 'feature_store.seguro.fs_risco_cultura_uf'
 TABLE_FS_APOLICE_FINANCEIRO = 'feature_store.seguro.fs_apolice_financeiro'
+TABLE_FS_CLIMA_MUNICIPIO    = 'feature_store.seguro.fs_clima_municipio'
+
+# Unity Catalog — Dados Externos (Clima e Mercado)
+TABLE_RAW_ONI     = '01_bronze.seg_rural.oni_mensal'
+TABLE_RAW_SPI     = '01_bronze.seg_rural.spi_municipio_mensal'
+TABLE_RAW_PRECOS  = '01_bronze.seg_rural.precos_commodity_mensal'
+
+# Volume de destino para arquivos brutos de dados externos
+VOLUME_CLIMA  = '/Volumes/00_raw/data/seguro_rural/clima'
+VOLUME_MERCADO = '/Volumes/00_raw/data/seguro_rural/mercado'
+
+# URL da série histórica do ONI (NOAA/CPC)
+ONI_URL = 'https://cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php'
+
+# Culturas CEPEA/ESALQ monitoradas (representam >70% das apólices no SISSER)
+CULTURAS_CEPEA = ['soja', 'milho_1a_safra', 'milho_2a_safra', 'cafe']
+
+# Threshold ENSO para classificação de fase (desvio padrão NOAA)
+ONI_THRESHOLD = 0.5
 
 # Volume com arquivo auxiliar do IBGE de distritos
 # Fonte: https://geoftp.ibge.gov.br/organizacao_do_territorio/estrutura_territorial/divisao_territorial/2022/
