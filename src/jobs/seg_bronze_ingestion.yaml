@@ -1,0 +1,28 @@
+resources:
+  jobs:
+    seg_bronze_ingestion:
+      name: seg_bronze_ingestion
+      tasks:
+        - task_key: historical_seg
+          notebook_task:
+            notebook_path: src/pipeline/raw_to_bronze
+            base_parameters:
+              table: dados_abertos_psr_2016a2024.xlsx
+              tableName: historical_seg
+            source: GIT
+        - task_key: seg_2025
+          depends_on:
+            - task_key: historical_seg
+          notebook_task:
+            notebook_path: src/pipeline/raw_to_bronze
+            base_parameters:
+              table: dados_abertos_psr_2025.xlsx
+              tableName: seg_2025
+            source: GIT
+      git_source:
+        git_url: https://github.com/tomosantos/ic-ml-model
+        git_provider: gitHub
+        git_branch: main
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
