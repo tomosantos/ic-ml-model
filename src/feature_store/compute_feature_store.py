@@ -63,6 +63,12 @@ primary_key = PRIMARY_KEYS[feature]
 
 # COMMAND ----------
 
+# MAGIC %sql
+# MAGIC CREATE CATALOG IF NOT EXISTS feature_store;
+# MAGIC CREATE SCHEMA IF NOT EXISTS feature_store.seg_rural
+
+# COMMAND ----------
+
 # DBTITLE 1,Execução da Query e Materialização
 sql_path = f'../{feature.replace("fs_", "feature_store/fs_")}.sql'
 query    = open(sql_path).read()
