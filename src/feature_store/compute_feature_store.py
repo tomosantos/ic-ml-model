@@ -64,8 +64,8 @@ primary_key = PRIMARY_KEYS[feature]
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE CATALOG IF NOT EXISTS feature_store;
-# MAGIC CREATE SCHEMA IF NOT EXISTS feature_store.seg_rural
+# MAGIC CREATE CATALOG IF NOT EXISTS 04_feature_store;
+# MAGIC CREATE SCHEMA IF NOT EXISTS 04_feature_store.seg_rural
 
 # COMMAND ----------
 
