@@ -1,4 +1,9 @@
 # Databricks notebook source
+# MAGIC %pip install -q databricks-feature-engineering
+# MAGIC %restart_python
+
+# COMMAND ----------
+
 # DBTITLE 1,Setup
 # Este notebook é invocado pelo job seg_silver_to_gold para materializar cada
 # tabela da Feature Store. Recebe o parâmetro `feature` via base_parameters.
@@ -81,5 +86,3 @@ fe.write_table(
 )
 
 print(f"✓ {dest_table} materializada com {df.count():,} linhas")
-
-# COMMAND ----------

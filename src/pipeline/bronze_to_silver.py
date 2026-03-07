@@ -1,4 +1,8 @@
 # Databricks notebook source
+# MAGIC %pip install -q xlrd
+
+# COMMAND ----------
+
 # DBTITLE 1,Setup
 import sys
 import re
