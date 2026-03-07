@@ -238,6 +238,31 @@ for col_name in colunas_string:
 
 # COMMAND ----------
 
+# DBTITLE 1,Conversão de coordenadas DMS → graus decimais
+# Formato bronze: graus + minutos + segundos (inteiros) + hemisfério (LATITUDE='S'/'N', LONGITUDE='W'/'E')
+# Conversão: DD = grau + min/60 + seg/3600, negativo para S e W
+_dms_present = all(c in df.columns for c in
+                   ['NR_GRAU_LAT', 'NR_MIN_LAT', 'NR_SEG_LAT', 'LATITUDE',
+                    'NR_GRAU_LONG', 'NR_MIN_LONG', 'NR_SEG_LONG', 'LONGITUDE'])
+
+if _dms_present:
+  _lat_abs = (
+    F.col('NR_GRAU_LAT').cast('double') +
+    F.col('NR_MIN_LAT').cast('double') / 60.0 +
+    F.col('NR_SEG_LAT').cast('double') / 3600.0
+  )
+  _lon_abs = (
+    F.col('NR_GRAU_LONG').cast('double') +
+    F.col('NR_MIN_LONG').cast('double') / 60.0 +
+    F.col('NR_SEG_LONG').cast('double') / 3600.0
+  )
+  df = (df
+    .withColumn('lat', F.when(F.upper(F.col('LATITUDE'))  == 'S', -_lat_abs).otherwise(_lat_abs))
+    .withColumn('lon', F.when(F.upper(F.col('LONGITUDE')) == 'W', -_lon_abs).otherwise(_lon_abs))
+  )
+
+# COMMAND ----------
+
 # DBTITLE 1,Remoção de colunas desnecessárias
 # Retira apenas as colunas que realmente existem no DataFrame
 colunas_retirar = [c for c in COLUNAS_RETIRAR if c in df.columns]
