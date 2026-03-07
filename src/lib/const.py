@@ -51,8 +51,9 @@ COLUNAS_RETIRAR = [
   'CD_PROCESSO_SUSEP', 'NR_PROPOSTA', 'ID_PROPOSTA',
   'DT_PROPOSTA',
   'NM_SEGURADO', 'NR_DOCUMENTO_SEGURADO',
-  'NR_GRAU_LAT', 'NR_MIN_LAT', 'NR_SEG_LAT',
-  'NR_GRAU_LONG', 'NR_MIN_LONG', 'NR_SEG_LONG',
+  'NR_GRAU_LAT', 'NR_MIN_LAT', 'NR_SEG_LAT', 'LATITUDE',
+  'NR_GRAU_LONG', 'NR_MIN_LONG', 'NR_SEG_LONG', 'LONGITUDE',
+  'NR_DECIMAL_LATITUDE', 'NR_DECIMAL_LONGITUDE',
   'DT_APOLICE', 'ANO_APOLICE',
 ]
 
@@ -81,8 +82,6 @@ RENAME_MAP = {
   'EVENTO_PREPONDERANTE':      'evento',
   'DT_INICIO_VIGENCIA':        'dt_inicio_vigencia',
   'DT_FIM_VIGENCIA':           'dt_fim_vigencia',
-  'NR_DECIMAL_LATITUDE':       'lat',
-  'NR_DECIMAL_LONGITUDE':      'lon',
 }
 
 # -----------------------------------------------------------------------------
