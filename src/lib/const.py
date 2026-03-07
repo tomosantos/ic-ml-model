@@ -21,12 +21,12 @@ TABLE_GOLD_FEATURES     = '03_gold.seg_rural.fs_seguro_features'
 TABLE_GOLD_LABELS       = '03_gold.seg_rural.fs_seguro_labels'
 
 # Feature Store — tabelas de agregações point-in-time
-TABLE_FS_HISTORICO_MUN             = 'feature_store.seguro.fs_historico_municipio'
-TABLE_FS_RISCO_CULTURA_UF          = 'feature_store.seguro.fs_risco_cultura_uf'
-TABLE_FS_APOLICE_FINANCEIRO        = 'feature_store.seguro.fs_apolice_financeiro'
-TABLE_FS_RISCO_SEGURADORA_CULTURA  = 'feature_store.seguro.fs_risco_seguradora_cultura'
-TABLE_FS_ANOMALIA_TAXA             = 'feature_store.seguro.fs_anomalia_taxa'
-TABLE_FS_CONCENTRACAO_CARTEIRA     = 'feature_store.seguro.fs_concentracao_carteira'
+TABLE_FS_HISTORICO_MUN             = 'feature_store.seg_rural.fs_historico_municipio'
+TABLE_FS_RISCO_CULTURA_UF          = 'feature_store.seg_rural.fs_risco_cultura_uf'
+TABLE_FS_APOLICE_FINANCEIRO        = 'feature_store.seg_rural.fs_apolice_financeiro'
+TABLE_FS_RISCO_SEGURADORA_CULTURA  = 'feature_store.seg_rural.fs_risco_seguradora_cultura'
+TABLE_FS_ANOMALIA_TAXA             = 'feature_store.seg_rural.fs_anomalia_taxa'
+TABLE_FS_CONCENTRACAO_CARTEIRA     = 'feature_store.seg_rural.fs_concentracao_carteira'
 
 
 # Volume com arquivo auxiliar do IBGE de distritos
