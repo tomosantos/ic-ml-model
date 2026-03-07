@@ -70,3 +70,9 @@ SELECT
     END                                         AS nrAreaPorAnimal
 
 FROM 02_silver.seg_rural.seg_cleaned
+-- Garante unicidade da chave (dtRef, apolice): em caso de registros duplicados
+-- na camada Silver (re-ingestão, emendas), mantém o primeiro por data de início.
+QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY apolice, DATE_TRUNC('MONTH', dt_inicio_vigencia)
+    ORDER BY     dt_inicio_vigencia
+) = 1
