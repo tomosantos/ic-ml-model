@@ -31,14 +31,6 @@ resources:
             base_parameters:
               feature: fs_apolice_financeiro
             source: GIT
-        - task_key: fs_clima_municipio
-          depends_on:
-            - task_key: silver_to_gold
-          notebook_task:
-            notebook_path: src/feature_store/compute_feature_store
-            base_parameters:
-              feature: fs_clima_municipio
-            source: GIT
         - task_key: fs_risco_seguradora_cultura
           depends_on:
             - task_key: silver_to_gold
