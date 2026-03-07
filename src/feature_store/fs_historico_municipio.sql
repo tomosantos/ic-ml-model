@@ -167,7 +167,7 @@ evento_dominante AS (
 )
 
 SELECT
-    mc.dtRefMes                                   AS dtRef,
+    CAST(mc.dtRefMes AS TIMESTAMP)                AS dtRef,
     mc.mun,
 
     h.nrApolicesMun90d,

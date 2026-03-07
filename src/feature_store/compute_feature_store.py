@@ -77,13 +77,16 @@ df = spark.sql(query)
 
 fe = FeatureEngineeringClient()
 
-fe.create_table(
-    name=dest_table,
-    primary_keys=primary_key,
-    df=df,
-    description=f"Feature Store — {feature}",
-    schema=df.schema,
-)
+# Cria a tabela apenas se ela ainda não existir (idempotente)
+try:
+    fe.create_table(
+        name=dest_table,
+        primary_keys=primary_key,
+        schema=df.schema,
+        description=f"Feature Store — {feature}",
+    )
+except Exception:
+    pass  # tabela já existe — segue para o write
 
 fe.write_table(
     name=dest_table,
