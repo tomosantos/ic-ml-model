@@ -21,9 +21,13 @@ TABLE_GOLD_FEATURES     = '03_gold.seg_rural.fs_seguro_features'
 TABLE_GOLD_LABELS       = '03_gold.seg_rural.fs_seguro_labels'
 
 # Feature Store — tabelas de agregações point-in-time
-TABLE_FS_HISTORICO_MUN      = 'feature_store.seguro.fs_historico_municipio'
-TABLE_FS_RISCO_CULTURA_UF   = 'feature_store.seguro.fs_risco_cultura_uf'
-TABLE_FS_APOLICE_FINANCEIRO = 'feature_store.seguro.fs_apolice_financeiro'
+TABLE_FS_HISTORICO_MUN             = 'feature_store.seguro.fs_historico_municipio'
+TABLE_FS_RISCO_CULTURA_UF          = 'feature_store.seguro.fs_risco_cultura_uf'
+TABLE_FS_APOLICE_FINANCEIRO        = 'feature_store.seguro.fs_apolice_financeiro'
+TABLE_FS_RISCO_SEGURADORA_CULTURA  = 'feature_store.seguro.fs_risco_seguradora_cultura'
+TABLE_FS_ANOMALIA_TAXA             = 'feature_store.seguro.fs_anomalia_taxa'
+TABLE_FS_CONCENTRACAO_CARTEIRA     = 'feature_store.seguro.fs_concentracao_carteira'
+
 
 # Volume com arquivo auxiliar do IBGE de distritos
 # Fonte: https://geoftp.ibge.gov.br/organizacao_do_territorio/estrutura_territorial/divisao_territorial/2022/
@@ -47,8 +51,8 @@ COLUNAS_RETIRAR = [
   'CD_PROCESSO_SUSEP', 'NR_PROPOSTA', 'ID_PROPOSTA',
   'DT_PROPOSTA',
   'NM_SEGURADO', 'NR_DOCUMENTO_SEGURADO',
-  'LATITUDE', 'NR_GRAU_LAT', 'NR_MIN_LAT', 'NR_SEG_LAT',
-  'LONGITUDE', 'NR_GRAU_LONG', 'NR_MIN_LONG', 'NR_SEG_LONG',
+  'NR_GRAU_LAT', 'NR_MIN_LAT', 'NR_SEG_LAT',
+  'NR_GRAU_LONG', 'NR_MIN_LONG', 'NR_SEG_LONG',
   'DT_APOLICE', 'ANO_APOLICE',
 ]
 

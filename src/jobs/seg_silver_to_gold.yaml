@@ -31,6 +31,30 @@ resources:
             base_parameters:
               feature: fs_apolice_financeiro
             source: GIT
+        - task_key: fs_risco_seguradora_cultura
+          depends_on:
+            - task_key: silver_to_gold
+          notebook_task:
+            notebook_path: src/feature_store/compute_feature_store
+            base_parameters:
+              feature: fs_risco_seguradora_cultura
+            source: GIT
+        - task_key: fs_anomalia_taxa
+          depends_on:
+            - task_key: silver_to_gold
+          notebook_task:
+            notebook_path: src/feature_store/compute_feature_store
+            base_parameters:
+              feature: fs_anomalia_taxa
+            source: GIT
+        - task_key: fs_concentracao_carteira
+          depends_on:
+            - task_key: silver_to_gold
+          notebook_task:
+            notebook_path: src/feature_store/compute_feature_store
+            base_parameters:
+              feature: fs_concentracao_carteira
+            source: GIT
       git_source:
         git_url: https://github.com/tomosantos/ic-ml-model
         git_provider: gitHub
