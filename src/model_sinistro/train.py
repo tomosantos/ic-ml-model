@@ -1,6 +1,5 @@
 # Databricks notebook source
-
-# MAGIC %pip install databricks-feature-engineering mlflow xgboost
+# MAGIC %pip install -q databricks-feature-engineering mlflow xgboost
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -39,7 +38,7 @@ from const import (
     TABLE_FS_RISCO_SEGURADORA_CULTURA,
 )
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, '../model_sinistro')
 from preprocessing import (
     FEATURES_CATEGORICAS,
     FEATURES_CICLICAS,
@@ -51,12 +50,12 @@ from preprocessing import (
 )
 
 mlflow.set_registry_uri('databricks-uc')
-mlflow.set_experiment('/ic-ml-model/sinistro')
+mlflow.set_experiment(experiment_id=2081689002426673)
 
 # COMMAND ----------
 
 # DBTITLE 1,Construção do Training Set
-_sql_path    = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fl_sinistro.sql')
+_sql_path    = os.path.join('../model_sinistro/', 'fl_sinistro.sql')
 _anchor_sql  = open(_sql_path).read()
 df_anchor    = spark.sql(_anchor_sql)
 
