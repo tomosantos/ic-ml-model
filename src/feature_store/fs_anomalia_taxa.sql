@@ -46,7 +46,7 @@ SELECT
         WHEN h.dt_fim_vigencia >= DATE_SUB(c.dtRefMes, 365)
          AND h.dt_fim_vigencia <  c.dtRefMes
         THEN 1
-    END)                                                                AS nrApolicesCulturaUf365d,
+    END)                                                                AS nrApolicesCulturaExata365d,
 
     -- Taxa média histórica do par (cultura, uf) — referência de precificação
     AVG(CASE
