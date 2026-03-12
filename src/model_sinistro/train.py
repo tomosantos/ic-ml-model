@@ -193,7 +193,7 @@ for name, r in results.items():
 df_results = pd.DataFrame(rows).sort_values('auc_pr_test', ascending=False)
 
 print('\n── Comparativo de Modelos ───────────────────────────────────────────')
-print(df_results.to_string(index=False))
+display(df_results.round(2))
 print('─────────────────────────────────────────────────────────────────────\n')
 
 # COMMAND ----------
@@ -219,13 +219,13 @@ with mlflow.start_run(run_name=champion_name) as run:
         artifact_path='model',
         flavor=mlflow.sklearn,
         training_set=training_set,
-        registered_model_name='feature_store.seg_rural.sinistro',
+        registered_model_name='04_feature_store.seg_rural.sinistro',
     )
 
-client = mlflow.tracking.MlflowClient()
-mv = client.get_latest_versions('feature_store.seg_rural.sinistro')[0]
-client.set_registered_model_alias('feature_store.seg_rural.sinistro', 'Champion', mv.version)
-
-print(f'✓ Alias "Champion" → feature_store.seg_rural.sinistro v{mv.version}')
+print(f'✓ Modelo registrado: 04_feature_store.seg_rural.sinistro')
 print(f'  auc_pr_train={results[champion_name]["train"]["auc_pr"]:.4f}  auc_pr_test={results[champion_name]["test"]["auc_pr"]:.4f}')
 print('\n✓ Pipeline de treinamento concluído.')
+
+# COMMAND ----------
+
+
