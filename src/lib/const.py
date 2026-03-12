@@ -28,6 +28,9 @@ TABLE_FS_RISCO_SEGURADORA_CULTURA  = '04_feature_store.seg_rural.fs_risco_segura
 TABLE_FS_ANOMALIA_TAXA             = '04_feature_store.seg_rural.fs_anomalia_taxa'
 TABLE_FS_CONCENTRACAO_CARTEIRA     = '04_feature_store.seg_rural.fs_concentracao_carteira'
 
+# Feature Store — tabela de predições (output do batch scoring)
+TABLE_PREDICOES                    = '04_feature_store.seg_rural.predicoes'
+
 
 # Volume com arquivo auxiliar do IBGE de distritos
 # Fonte: https://geoftp.ibge.gov.br/organizacao_do_territorio/estrutura_territorial/divisao_territorial/2022/
