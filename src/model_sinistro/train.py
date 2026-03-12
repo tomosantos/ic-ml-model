@@ -89,8 +89,9 @@ feature_lookups = [
     ),
 ]
 
-# Colunas de join e identificadores — não são features preditoras
-_exclude_columns = ['mun', 'uf', 'cultura', 'tipo_cultura', 'seguradora', 'dtRef', 'apolice']
+# Colunas de join puras — não são features preditoras
+# tipo_cultura e seguradora são mantidos: usados como features categóricas em FEATURES_CATEGORICAS
+_exclude_columns = ['mun', 'uf', 'cultura', 'dtRef', 'apolice']
 
 training_set = fe.create_training_set(
     df=df_anchor,
