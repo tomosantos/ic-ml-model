@@ -14,7 +14,8 @@
 -- Mapeamento de colunas:
 --   Chaves primárias  : apolice, dtRef
 --   Chaves de lookup  : mun, uf, cultura, tipo_cultura, seguradora
---                       (passadas como exclude_columns em fe.create_training_set)
+--   Features diretas  : tipo_cultura, seguradora, regiao
+--                       (mun, uf, cultura, apolice, dtRef → exclude_columns)
 --   Label             : flSinistro
 -- =============================================================================
 
@@ -34,6 +35,7 @@ SELECT
     cultura,
     tipo_cultura,
     seguradora,
+    regiao,
 
     -- ── Label (variável resposta — classificação binária) ────────────────────
     CASE
