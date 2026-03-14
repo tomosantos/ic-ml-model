@@ -16,6 +16,22 @@ TABLE_BRONZE_ATUAL      = '01_bronze.seg_rural.seg_2025'
 # Unity Catalog — Camada Silver
 TABLE_SILVER_CLEANED    = '02_silver.seg_rural.seg_cleaned'
 
+# Unity Catalog — Camada Gold (features e labels separados)
+TABLE_GOLD_FEATURES     = '03_gold.seg_rural.fs_seguro_features'
+TABLE_GOLD_LABELS       = '03_gold.seg_rural.fs_seguro_labels'
+
+# Feature Store — tabelas de agregações point-in-time
+TABLE_FS_HISTORICO_MUN             = '04_feature_store.seg_rural.fs_historico_municipio'
+TABLE_FS_RISCO_CULTURA_UF          = '04_feature_store.seg_rural.fs_risco_cultura_uf'
+TABLE_FS_APOLICE_FINANCEIRO        = '04_feature_store.seg_rural.fs_apolice_financeiro'
+TABLE_FS_RISCO_SEGURADORA_CULTURA  = '04_feature_store.seg_rural.fs_risco_seguradora_cultura'
+TABLE_FS_ANOMALIA_TAXA             = '04_feature_store.seg_rural.fs_anomalia_taxa'
+TABLE_FS_CONCENTRACAO_CARTEIRA     = '04_feature_store.seg_rural.fs_concentracao_carteira'
+
+# Feature Store — tabela de predições (output do batch scoring)
+TABLE_PREDICOES                    = '04_feature_store.seg_rural.predicoes'
+
+
 # Volume com arquivo auxiliar do IBGE de distritos
 # Fonte: https://geoftp.ibge.gov.br/organizacao_do_territorio/estrutura_territorial/divisao_territorial/2022/
 DISTRITOS_PATH = '/Volumes/00_raw/data/seguro_rural/RELATORIO_DTB_BRASIL_DISTRITO.xls'
@@ -36,10 +52,10 @@ SEM_ACENTOS = 'aaaaeeeiiioooouuucAAAAEEEIIIOOOOUUUC'
 
 COLUNAS_RETIRAR = [
   'CD_PROCESSO_SUSEP', 'NR_PROPOSTA', 'ID_PROPOSTA',
-  'DT_PROPOSTA', 'DT_INICIO_VIGENCIA', 'DT_FIM_VIGENCIA',
+  'DT_PROPOSTA',
   'NM_SEGURADO', 'NR_DOCUMENTO_SEGURADO',
-  'LATITUDE', 'NR_GRAU_LAT', 'NR_MIN_LAT', 'NR_SEG_LAT',
-  'LONGITUDE', 'NR_GRAU_LONG', 'NR_MIN_LONG', 'NR_SEG_LONG',
+  'NR_GRAU_LAT', 'NR_MIN_LAT', 'NR_SEG_LAT', 'LATITUDE',
+  'NR_GRAU_LONG', 'NR_MIN_LONG', 'NR_SEG_LONG', 'LONGITUDE',
   'NR_DECIMAL_LATITUDE', 'NR_DECIMAL_LONGITUDE',
   'DT_APOLICE', 'ANO_APOLICE',
 ]
@@ -67,6 +83,8 @@ RENAME_MAP = {
   'CD_GEOCMU':                 'mun',
   'VALOR_INDENIZACAO':         'indenizacao',  # coluna já normalizada (sem acento)
   'EVENTO_PREPONDERANTE':      'evento',
+  'DT_INICIO_VIGENCIA':        'dt_inicio_vigencia',
+  'DT_FIM_VIGENCIA':           'dt_fim_vigencia',
 }
 
 # -----------------------------------------------------------------------------
@@ -578,8 +596,30 @@ REGIAO_MAP = {
 # -----------------------------------------------------------------------------
 
 COLUNAS_FINAIS = [
-  'apolice', 'mun', 'nome_mun', 'uf', 'regiao', 'seguradora', 'tipo',
-  'cultura', 'tipo_cultura', 'area', 'animal', 'duracao',
+  'apolice', 'dt_inicio_vigencia', 'dt_fim_vigencia',
+  'mun', 'nome_mun', 'uf', 'regiao', 'lat', 'lon',
+  'seguradora', 'tipo', 'cultura', 'tipo_cultura',
+  'area', 'animal', 'duracao',
   'prod_est', 'prod_seg', 'nivel_cob', 'total_seg', 'premio',
   'taxa', 'subvencao', 'indenizacao', 'evento', 'sinistro', 'sinistralidade',
+]
+
+# -----------------------------------------------------------------------------
+# Separação de colunas para a camada Gold (Feature Store)
+# COLUNAS_FEATURES: preditores — sem variáveis de desfecho pós-contratual
+# COLUNAS_LABELS:   variáveis resposta + chaves de junção
+# -----------------------------------------------------------------------------
+
+COLUNAS_FEATURES = [
+  'apolice', 'dt_inicio_vigencia', 'dt_fim_vigencia',
+  'mun', 'nome_mun', 'uf', 'regiao', 'lat', 'lon',
+  'seguradora', 'tipo', 'cultura', 'tipo_cultura',
+  'area', 'animal', 'duracao',
+  'prod_est', 'prod_seg', 'nivel_cob', 'total_seg', 'premio',
+  'taxa', 'subvencao',
+]
+
+COLUNAS_LABELS = [
+  'apolice', 'dt_inicio_vigencia',
+  'evento', 'indenizacao', 'sinistro', 'sinistralidade',
 ]
