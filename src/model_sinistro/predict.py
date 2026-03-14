@@ -35,11 +35,19 @@ mlflow.set_registry_uri('databricks-uc')
 dbutils.widgets.text('date', '')
 dbutils.widgets.text('model_version', 'latest')
 
+CUTOFF_OOT = pd.Timestamp('2025-01-01')
+
 date          = dbutils.widgets.get('date')
 model_version = dbutils.widgets.get('model_version')
 
 if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
     raise ValueError(f"Formato de data inválido: '{date}'. Use YYYY-MM-DD.")
+
+if pd.Timestamp(date) < CUTOFF_OOT:
+    raise ValueError(
+        f"predict.py é reservado para scoring OOT (>= {CUTOFF_OOT.date()}). "
+        f"Recebido: '{date}'. Para avaliar datas anteriores, use o split OOS do train.py."
+    )
 
 if model_version != 'latest' and not re.match(r'^\d+$', model_version):
     raise ValueError(f"model_version deve ser 'latest' ou um inteiro positivo. Recebido: '{model_version}'")
