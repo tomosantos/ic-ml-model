@@ -101,9 +101,11 @@ df = training_set.load_df().toPandas()
 df = derive_features(df)
 
 print(f'Dataset pré-filtro OOT: {len(df):,} linhas')
+
 CUTOFF_OOT = pd.Timestamp('2025-01-01')
 df['dtRef'] = pd.to_datetime(df['dtRef'])
 df = df[df['dtRef'] < CUTOFF_OOT].copy()
+
 print(f'Dataset pós-filtro OOT: {len(df):,} linhas (dtRef < {CUTOFF_OOT.date()})')
 print(f'Maior dtRef pós-filtro: {df["dtRef"].max().date()}')
 
@@ -139,9 +141,9 @@ print(f'scale_pos_weight: {spw:.2f}')
 
 # COMMAND ----------
 
-# DBTITLE 1,Treinamento Inicial + Grid Search
+# DBTITLE 1,Treinamento Inicial
 def compute_metrics(y_true: pd.Series, y_prob: np.ndarray) -> dict:
-    y_pred   = (y_prob >= 0.3).astype(int)
+    y_pred   = (y_prob >= 0.5).astype(int)
     decil_10 = np.percentile(y_prob, 90)
     return {
         'accuracy': accuracy_score(y_true, y_pred),
@@ -156,11 +158,15 @@ def compute_metrics(y_true: pd.Series, y_prob: np.ndarray) -> dict:
 tree_models = {
     'decision_tree': (pipeline_tree, DecisionTreeClassifier(
         class_weight='balanced',
+        max_depth=8,
+        min_samples_leaf=50,
         random_state=42,
     )),
     'random_forest': (pipeline_tree, RandomForestClassifier(
         class_weight='balanced',
         n_estimators=200,
+        max_depth=8,
+        min_samples_leaf=30,
         n_jobs=-1,
         random_state=42,
     )),
@@ -173,6 +179,7 @@ tree_models = {
         scale_pos_weight=spw,
         n_estimators=200,
         learning_rate=0.1,
+        max_depth=6,
         eval_metric='auc',
         random_state=42,
     )),
@@ -236,6 +243,9 @@ df_baseline = pd.DataFrame([
 champion_name = df_baseline.sort_values('auc_roc_test', ascending=False).iloc[0]['model']
 print(f'\nCampeão inicial (baseline): {champion_name}')
 
+# COMMAND ----------
+
+# DBTITLE 1,Grid Search
 champion_preproc, champion_clf = tree_models[champion_name]
 grid_search = GridSearchCV(
     estimator=clone(champion_clf),
@@ -244,6 +254,7 @@ grid_search = GridSearchCV(
     cv=3,
     refit=True,
     n_jobs=-1,
+    verbose=4
 )
 
 tuned_pipeline = Pipeline([
@@ -355,7 +366,3 @@ with mlflow.start_run(run_name=champion_name) as run:
 print(f'✓ Modelo registrado: 04_feature_store.seg_rural.sinistro')
 print(f'  auc_roc_train={tuned_results["train"]["auc_roc"]:.4f}  auc_roc_test={tuned_results["test"]["auc_roc"]:.4f}')
 print('\n✓ Pipeline de treinamento concluído.')
-
-# COMMAND ----------
-
-
