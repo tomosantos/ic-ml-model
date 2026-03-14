@@ -21,7 +21,7 @@ from const import (
     TABLE_FS_HISTORICO_MUN,
     TABLE_FS_RISCO_CULTURA_UF,
     TABLE_FS_RISCO_SEGURADORA_CULTURA,
-    TABLE_PREDICOES,
+    TABLE_PREDICOES
 )
 
 sys.path.insert(0, '../model_sinistro')
@@ -33,7 +33,7 @@ mlflow.set_registry_uri('databricks-uc')
 
 # DBTITLE 1,Widgets
 dbutils.widgets.text('date', '')
-dbutils.widgets.text('model_version', 'latest')
+dbutils.widgets.text('model_version', '7')
 
 CUTOFF_OOT = pd.Timestamp('2025-01-01')
 
@@ -130,7 +130,7 @@ feature_lookups = [
 predict_set = fe.create_training_set(
     df=df_anchor,
     feature_lookups=feature_lookups,
-    label=None,
+    label=None
 )
 
 df_predict = predict_set.load_df().toPandas()
@@ -166,11 +166,26 @@ print(f'✓ Inferência concluída: {len(df_long):,} linhas ({len(df_long) // 2:
 sdf = spark.createDataFrame(df_long)
 
 # Idempotência — remove predições anteriores para o mesmo mês/modelo
-spark.sql(f"""
-    DELETE FROM {TABLE_PREDICOES}
-    WHERE dtRef = '{date}'
-      AND descModelName = '{model_name}'
-""")
+if spark.catalog.tableExists(TABLE_PREDICOES):
+    spark.sql(f"""
+        DELETE FROM {TABLE_PREDICOES}
+        WHERE dtRef = '{date}'
+          AND descModelName = '{model_name}'
+    """)
+else:
+    spark.sql(f"""
+        CREATE TABLE {TABLE_PREDICOES} (
+            dtRef DATE,
+            descModelName STRING,
+            nrModelVersion INT,
+            apolice STRING,
+            nrScore DOUBLE,
+            descLabel INT,
+            nrProbLabel DOUBLE
+        )
+        USING DELTA
+        PARTITIONED BY (descModelName)
+    """)
 
 (
     sdf.write
@@ -182,5 +197,3 @@ spark.sql(f"""
 
 print(f'✓ {len(df_long):,} predições salvas em {TABLE_PREDICOES}')
 print(f'  dtRef={date}  model={model_name}  version={actual_version}')
-
-# COMMAND ----------
