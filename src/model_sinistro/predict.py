@@ -5,7 +5,6 @@
 # COMMAND ----------
 
 # DBTITLE 1,Setup
-import re
 import sys
 
 import mlflow
@@ -31,25 +30,15 @@ mlflow.set_registry_uri('databricks-uc')
 
 # COMMAND ----------
 
-# DBTITLE 1,Widgets
-dbutils.widgets.text('date', '')
-dbutils.widgets.text('model_version', '7')
-
+# DBTITLE 1,Parâmetros
 CUTOFF_OOT = pd.Timestamp('2025-01-01')
+model_version = '7'
 
-date          = dbutils.widgets.get('date')
-model_version = dbutils.widgets.get('model_version')
 
-if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
-    raise ValueError(f"Formato de data inválido: '{date}'. Use YYYY-MM-DD.")
+if not isinstance(CUTOFF_OOT, pd.Timestamp):
+    raise ValueError('CUTOFF_OOT deve ser pandas.Timestamp')
 
-if pd.Timestamp(date) < CUTOFF_OOT:
-    raise ValueError(
-        f"predict.py é reservado para scoring OOT (>= {CUTOFF_OOT.date()}). "
-        f"Recebido: '{date}'. Para avaliar datas anteriores, use o split OOS do train.py."
-    )
-
-if model_version != 'latest' and not re.match(r'^\d+$', model_version):
+if model_version != 'latest' and not model_version.isdigit():
     raise ValueError(f"model_version deve ser 'latest' ou um inteiro positivo. Recebido: '{model_version}'")
 
 model_name = '04_feature_store.seg_rural.sinistro'
@@ -73,9 +62,8 @@ print(f'✓ Modelo carregado: {model_name} v{actual_version}  (run_id={run_id})'
 # COMMAND ----------
 
 # DBTITLE 1,Âncora de Scoring
-# Apólices vigentes no período de interesse:
-#   dtRef  = primeiro dia do mês informado
-#   vigência ainda aberta na data de referência
+# Apólices OOT:
+#   dtRef >= CUTOFF_OOT
 df_anchor = spark.sql(f"""
     SELECT
         apolice,
@@ -87,13 +75,12 @@ df_anchor = spark.sql(f"""
         seguradora,
         regiao
     FROM 02_silver.seg_rural.seg_cleaned
-    WHERE DATE_TRUNC('MONTH', dt_inicio_vigencia) = DATE('{date}')
-      AND dt_fim_vigencia > '{date}'
+    WHERE DATE_TRUNC('MONTH', dt_inicio_vigencia) >= DATE('{CUTOFF_OOT.date()}')
 """)
 
 count_anchor = df_anchor.count()
-assert count_anchor > 0, f"Nenhuma apólice vigente encontrada para date='{date}'"
-print(f'✓ Âncora: {count_anchor:,} apólices')
+assert count_anchor > 0, f"Nenhuma apólice encontrada para dtRef >= {CUTOFF_OOT.date()}"
+print(f'✓ Âncora: {count_anchor:,} apólices (dtRef >= {CUTOFF_OOT.date()})')
 
 # COMMAND ----------
 
@@ -169,7 +156,7 @@ sdf = spark.createDataFrame(df_long)
 if spark.catalog.tableExists(TABLE_PREDICOES):
     spark.sql(f"""
         DELETE FROM {TABLE_PREDICOES}
-        WHERE dtRef = '{date}'
+        WHERE dtRef >= DATE('{CUTOFF_OOT.date()}')
           AND descModelName = '{model_name}'
     """)
 else:
@@ -196,4 +183,4 @@ else:
 )
 
 print(f'✓ {len(df_long):,} predições salvas em {TABLE_PREDICOES}')
-print(f'  dtRef={date}  model={model_name}  version={actual_version}')
+print(f'  dtRef>={CUTOFF_OOT.date()}  model={model_name}  version={actual_version}')
