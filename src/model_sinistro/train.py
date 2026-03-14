@@ -358,7 +358,7 @@ with mlflow.start_run(run_name=champion_name) as run:
     fe.log_model(
         model=best_pipeline,
         artifact_path='model',
-        flavor=mlflow.sklearn,
+        flavor=mlflow.xgboost,
         training_set=training_set,
         registered_model_name='04_feature_store.seg_rural.sinistro',
     )

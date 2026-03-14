@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %pip install -q databricks-feature-engineering mlflow
+# MAGIC %pip install -q databricks-feature-engineering mlflow xgboost
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -49,7 +49,7 @@ model_name = '04_feature_store.seg_rural.sinistro'
 model_uri    = f'models:/{model_name}/{model_version}'
 model_pyfunc = mlflow.pyfunc.load_model(model_uri)
 run_id       = model_pyfunc.metadata.run_id
-model        = mlflow.sklearn.load_model(f'runs:/{run_id}/model')
+model        = mlflow.xgboost.load_model(f'runs:/{run_id}/model')
 
 if model_version == 'latest':
     versions       = MlflowClient().get_latest_versions(model_name)
