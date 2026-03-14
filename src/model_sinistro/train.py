@@ -90,7 +90,7 @@ feature_lookups = [
 
 # Colunas de join puras — não são features preditoras
 # tipo_cultura e seguradora são mantidos: usados como features categóricas em FEATURES_CATEGORICAS
-_exclude_columns = ['mun', 'uf', 'cultura', 'dtRef', 'apolice']
+_exclude_columns = ['mun', 'uf', 'cultura', 'apolice']
 
 training_set = fe.create_training_set(
     df=df_anchor,
@@ -102,6 +102,13 @@ training_set = fe.create_training_set(
 df = training_set.load_df().toPandas()
 df = derive_features(df)
 
+print(f'Dataset pré-filtro OOT: {len(df):,} linhas')
+CUTOFF_OOT = pd.Timestamp('2025-01-01')
+df['dtRef'] = pd.to_datetime(df['dtRef'])
+df = df[df['dtRef'] < CUTOFF_OOT].copy()
+print(f'Dataset pós-filtro OOT: {len(df):,} linhas (dtRef < {CUTOFF_OOT.date()})')
+print(f'Maior dtRef pós-filtro: {df["dtRef"].max().date()}')
+
 # COMMAND ----------
 
 # DBTITLE 1,Split
@@ -112,6 +119,10 @@ FEATURES = (
     + FEATURES_CATEGORICAS
     + FEATURES_CICLICAS
 )
+
+_forbidden_features = {'dtRef', 'sinistro', 'indenizacao', 'sinistralidade', 'evento', 'flSinistro'}
+_found_forbidden = _forbidden_features.intersection(FEATURES)
+assert not _found_forbidden, f'Colunas proibidas em FEATURES: {_found_forbidden}'
 
 X = df[FEATURES]
 y = df[LABEL]
@@ -208,6 +219,7 @@ with mlflow.start_run(run_name=champion_name) as run:
         'sinistro_rate_train': sinistro_rate_train,
         'sinistro_rate_test':  sinistro_rate_test,
         'champion':            champion_name,
+        'cutoff_oot':          str(CUTOFF_OOT.date()),
     })
     for k, v in results[champion_name]['train'].items():
         mlflow.log_metric(f'{k}_train', v)
