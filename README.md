@@ -1,6 +1,21 @@
 # ic-ml-model
 Modelo de ML para predição de sinistro no Seguro Rural brasileiro.
 
+## Índice
+- [Explicação](#explicação)
+- [Motivação](#motivação)
+- [1. Processo de Ingestão](#1-processo-de-ingestão)
+- [2. Arquitetura Medalhão](#2-arquitetura-medalhão)
+- [3. Orquestração dos Pipelines](#3-orquestração-dos-pipelines)
+- [4. Criação e Detalhamento da Feature Store](#4-criação-e-detalhamento-da-feature-store)
+- [5. Features inputadas no modelo](#5-todas-as-features-inputadas-no-modelo)
+- [6. train.py e predict.py](#6-trainpy-e-predictpy)
+- [7. Resultados (WIP)](#7-resultados-wip)
+- [Melhores práticas e Observabilidade](#melhores-práticas-de-engenharia-aplicadas-no-projeto)
+- [Como executar no Databricks Free Edition](#como-executar-no-databricks-free-edition)
+- [Fluxograma do Projeto](#fluxograma-do-projeto-mermaid)
+- [Dicionário de Dados](#dicionário-de-dados)
+
 ## Explicação
 
 Este projeto implementa uma solução ponta a ponta para predição de sinistro no Seguro
@@ -24,7 +39,7 @@ da apólice. Um modelo preditivo de sinistro ajuda a:
 - priorizar monitoramento de carteiras com maior propensão a perdas;
 - fornecer base técnica para melhorias contínuas em políticas de seguro e subvenção.
 
-## 1) Processo de Ingestão
+## 1. Processo de Ingestão
 
 A ingestão é dividida em duas partes:
 
@@ -43,7 +58,7 @@ A ingestão é dividida em duas partes:
 	- `01_bronze.seg_rural.historical_seg`
 	- `01_bronze.seg_rural.seg_2025`
 
-## 2) Arquitetura Medalhão
+## 2. Arquitetura Medalhão
 
 O projeto é organizado por camadas e responsabilidades:
 - `00_raw`: arquivos `.xlsx` brutos no Volume Databricks;
@@ -80,7 +95,7 @@ Módulos principais no repositório:
 - `src/model_sinistro`: pré-processamento, treino e predição;
 - `src/lib/const.py`: fonte única de constantes, tabelas e listas de colunas.
 
-## 3) Orquestração dos Pipelines
+## 3. Orquestração dos Pipelines
 
 O projeto usa Databricks Asset Bundles (DAB) em `src/jobs/`.
 
@@ -102,7 +117,7 @@ Objetivo: garantir ingestão sequencial dos dois arquivos fonte na Bronze.
 
 Objetivo: consolidar Silver/Gold antes de materializar todas as tabelas de features.
 
-## 4) Criação da Feature Store
+## 4. Criação e Detalhamento da Feature Store
 
 A criação é centralizada em `src/feature_store/compute_feature_store.py`.
 
@@ -111,54 +126,54 @@ O notebook recebe o parâmetro `feature` e resolve:
 - tabela de destino (`FEATURE_MAP`)
 - chave primária (`PRIMARY_KEYS`)
 
-Tabelas materializadas:
-- `04_feature_store.seg_rural.fs_historico_municipio`
-- `04_feature_store.seg_rural.fs_risco_cultura_uf`
-- `04_feature_store.seg_rural.fs_apolice_financeiro`
-- `04_feature_store.seg_rural.fs_risco_seguradora_cultura`
-- `04_feature_store.seg_rural.fs_anomalia_taxa`
-- `04_feature_store.seg_rural.fs_concentracao_carteira`
+Escrita feita com `mode='merge'`, mantendo execução idempotente e incremental. Sempre prestando atenção à semântica *point-in-time* (evitando *data leakage* limitando agregações apenas a apólices *encerradas* antes da data focada).
 
-Escrita feita com `mode='merge'`, mantendo execução idempotente e incremental.
+### Conhecendo as Features Calculadas
 
-## 5) Todas as features inputadas no modelo
+A Feature Store provê visões agregadas fundamentais para avaliar risco sem vazamento de dados do futuro. As tabelas disponíveis são:
 
-As features estão definidas em `src/model_sinistro/preprocessing.py` e são combinadas em
-`src/model_sinistro/train.py`.
+#### 1. Risco Histórico por Município (`fs_historico_municipio`)
+- **Chave de Entidade:** Município (`mun`)
+- **O que calculamos?** Densidade de contratação de apólices e o histórico de risco (contagem e volumetria do índice de sinistralidade e severidade) em janelas móveis de 90 a 1095 dias.
+- **Por que importa?** Alta densidade de novas contrações recentes num município pode indicar *seleção adversa* (ex: o produtor pressente um evento climático e corre para fechar seguro). O histórico revela a regularidade de ocorrências e a severidade dos eventos naquele local específo ao longo do tempo.
 
-### Features numéricas históricas
+#### 2. Engenharia Financeira da Apólice (`fs_apolice_financeiro`)
+- **Chave de Entidade:** Número da Apólice (`apolice`)
+- **O que calculamos?** 
+  - *Métricas temporais*: quadrimestre, ano de plantio, duração normalizada.
+  - *Métricas de densidade*: Limite de garantia por hectare (patrimônio em risco), Prêmio por hectare.
+  - *Razões financeiras*: Taxa aplicada, razão de cobertura produtiva, proporção de subvenção, nível de cobertura.
+- **Por que importa?** Diferenciar culturas curtas de culturas arbóreas, evidenciar o apetite ao risco (ou risco moral) pela escolha entre o *nível de cobertura* e quão sensível é o patrimônio alocado *por hectare*.
 
-- `nrApolicesMun90d`, `nrSinistrosMun90d`, `nrTaxaSinistroMun90d`, `nrIndiceSeveridadeMun90d`
-- `nrApolicesMun365d`, `nrSinistrosMun365d`, `nrTaxaSinistroMun365d`, `nrIndiceSeveridadeMun365d`
-- `nrApolicesMun730d`, `nrSinistrosMun730d`, `nrTaxaSinistroMun730d`, `nrIndiceSeveridadeMun730d`
-- `nrApolicesMun1095d`, `nrSinistrosMun1095d`, `nrTaxaSinistroMun1095d`, `nrIndiceSeveridadeMun1095d`
-- `nrApolicesAbertas30d`, `nrApolicesAbertas90d`
-- `nrApolicesCulturaUf365d`, `nrSinistrosCulturaUf365d`, `nrTaxaSinistroCulturaUf365d`, `nrSeveridadeCulturaUf365d`, `nrNivelCobMedioCulturaUf365d`
-- `nrApolicesCulturaUf730d`, `nrSinistrosCulturaUf730d`, `nrTaxaSinistroCulturaUf730d`, `nrSeveridadeCulturaUf730d`
-- `nrConcentracaoSeguradora365d`
-- `nrApolicesSegCultura365d`, `nrTaxaSinistroSegCultura365d`, `nrSeveridadeSegCultura365d`
-- `nrApolicesCulturaExata365d`, `nrTaxaMediaCulturaUf365d`, `nrStdTaxaCulturaUf365d`
-- `nrPctCarteiraSegMun365d`, `nrHHI_seguradora_mun`
-- `nrAnomaliaTaxa`
+#### 3. Risco Base por Cultura e UF (`fs_risco_cultura_uf`)
+- **Chave de Entidade:** UF e Categoria de Cultura (`uf`, `tipo_cultura`)
+- **O que calculamos?** Total de apólices, proporção de sinistros (taxa de sinistro), e severidade para uma cultura em um Estado (janela de 365 dias).
+- **Por que importa?** Fornece uma "linha de base" (um preenchedor de hierarquia mais macro) caso um deteminado município não possua histórico considerável para um tipo específico de cultura, permitindo melhor estimação do risco latente. 
 
-### Features numéricas de apólice
+#### 4. Comportamento Histórico por Seguradora e Cultura (`fs_risco_seguradora_cultura`)
+- **Chave de Entidade:** Seguradora e Categoria de Cultura (`seguradora`, `tipo_cultura`)
+- **O que calculamos?** Volume de exposições de uma seguradora face a uma cultura, percentual da taxa de sinistro e severidade dos eventos sob seu domínio. 
+- **Por que importa?** Permite identificar padrões de *pricing* diferenciado. Revela se a seguradora possui *expertise* na gestão e vistoria de determinada cultura e se sofreu alta seleção adversa naquele segmento no ano que passou.
 
-- `nrTrimestre`, `nrAnoPlantio`, `nrDuracaoDias`, `nrDuracaoRelativa`, `flSafraVerao`
-- `nrDensidadeValorSegHa`, `nrPremioPorHa`, `nrRazaoCoberturaProd`
-- `nrRazaoSubvencaoPremio`, `nrTaxaApolice`, `nrNivelCobertura`, `nrAreaPorAnimal`
+#### 5. Parâmetros de Referência de Taxa (`fs_anomalia_taxa`)
+- **Chave de Entidade:** UF e Cultura Global (`uf`, `cultura`)
+- **O que calculamos?** Taxa média praticada e desvio padrão. 
+- **Por que importa?** Essa referência constrói a base para detectar *anomalia de precificação*. A "anomalia" final surge no join durante o treino (taxa_apólice em relação à média praticada no Estado). Desvios altíssimos indicam precificação volátil e risco muito acentuado.
 
-### Features categóricas
+#### 6. Concentração de Carteira Regional (`fs_concentracao_carteira`)
+- **Chave de Entidade:** Seguradora e Município (`seguradora`, `mun`)
+- **O que calculamos?** O peso de um município na exposição total de uma seguradora (percentual de limite de garantia), bem como o cômputo do HHI (Índice *Herfindahl-Hirschman*).
+- **Por que importa?** Altíssimas concentrações (HHI próximo a 1, ou peso enorme em apenas alguns municípios) denotam forte exposição a eventos regionais agudos (ex: uma seca regional). Empresas com risco macro bem distribuído absorvem o choque climático mais naturalmente sem comprometer pagamentos de indenização.
 
-- `tipo_cultura`, `regiao`, `seguradora`, `nrEventosDominante365d`
+## 5. Todas as features inputadas no modelo
 
-### Features cíclicas
+O detalhamento e explicação preditiva (breakdown) de todas as variáveis de entrada usadas na modelagem do risco (históricas, de apólice, categóricas e cíclicas) foram movidos para a documentação específica:
 
-- `nrSinMes`, `nrCosMes`
+- **[Dicionário de Features do Modelo](docs/features_modelo.md)**
 
-Observação: `mun`, `uf`, `cultura`, `apolice` e `dtRef` são chaves de lookup/rastreio,
-não entradas do classificador.
+Observação rápida: as chaves `mun`, `uf`, `cultura`, `apolice` e `dtRef` são utilizadas internamente em processos de *Feature Lookup* e rastreio, não entrando matematicamente como entradas numéricas no classificador final.
 
-## 6) train.py e predict.py
+## 6. train.py e predict.py
 
 ### `train.py`
 
@@ -185,7 +200,7 @@ Fluxo resumido:
 - executa `predict_proba` e gera score + probabilidade por classe;
 - persiste em `04_feature_store.seg_rural.predicoes` com estratégia idempotente.
 
-## 7) Resultados (WIP)
+## 7. Resultados (WIP)
 
 Esta seção é um espaço em construção para consolidação dos experimentos.
 
@@ -364,73 +379,9 @@ flowchart TB
 
 ---
 
-## Dicionário de Dados — Tabela Bronze (`seg_rural`)
+## Dicionário de Dados
 
-| Coluna | Descrição |
-|---|---|
-| `NM_RAZAO_SOCIAL` | Razão social da seguradora |
-| `CD_PROCESSO_SUSEP` | Código do produto registrado na SUSEP |
-| `NR_PROPOSTA` | Número da proposta na seguradora |
-| `ID_PROPOSTA` | Código identificador da proposta no sistema do MAPA (SISSER) |
-| `DT_PROPOSTA` | Data da contratação da proposta |
-| `DT_INICIO_VIGENCIA` | Data de início da vigência do seguro |
-| `DT_FIM_VIGENCIA` | Data do fim da vigência do seguro |
-| `NM_SEGURADO` | Nome do segurado |
-| `NR_DOCUMENTO_SEGURADO` | Número do CPF ou CNPJ do segurado |
-| `NM_MUNICIPIO_PROPRIEDADE` | Nome do município onde está localizada a propriedade |
-| `SG_UF_PROPRIEDADE` | Sigla da Unidade da Federação onde está localizada a propriedade |
-| `LATITUDE` | Latitude da propriedade |
-| `NR_GRAU_LAT` | Grau da latitude da propriedade |
-| `NR_MIN_LAT` | Minuto da latitude da propriedade |
-| `NR_SEG_LAT` | Segundo da latitude da propriedade |
-| `LONGITUDE` | Longitude da propriedade |
-| `NR_GRAU_LONG` | Grau da longitude da propriedade |
-| `NR_MIN_LONG` | Minuto da longitude da propriedade |
-| `NR_SEG_LONG` | Segundo da longitude da propriedade |
-| `NM_CLASSIF_PRODUTO` | Classificação do tipo de seguro |
-| `NM_CULTURA_GLOBAL` | Cultura ou atividade segurada |
-| `NR_AREA_TOTAL` | Área total segurada |
-| `NR_ANIMAL` | Número de animais segurados |
-| `NR_PRODUTIVIDADE_ESTIMADA` | Produtividade estimada |
-| `NR_PRODUTIVIDADE_SEGURADA` | Produtividade segurada |
-| `NivelDeCobertura` | Nível de cobertura do seguro |
-| `VL_LIMITE_GARANTIA` | Valor segurado |
-| `VL_PREMIO_LIQUIDO` | Valor do prêmio |
-| `PE_TAXA` | Percentual da taxa de prêmio |
-| `VL_SUBVENCAO_FEDERAL` | Valor da subvenção federal |
-| `NR_APOLICE` | Número da apólice na seguradora |
-| `DT_APOLICE` | Data de contratação da apólice |
-| `ANO_APOLICE` | Ano de contratação da apólice |
-| `CD_GEOCMU` | Geocódigo do município onde está localizada a propriedade |
-| `VALOR_INDENIZAÇÃO` | Valor pago em indenização, em caso de sinistro |
-| `EVENTO_PREPONDERANTE` | Evento preponderante causador do sinistro |
+Os dicionários detalhados das tabelas ingeridas e processadas podem ser encontrados no diretório `docs/`. Neles detalhamos tipo, origem e a definição de cada coluna (inclusive as normalizadas e derivadas):
 
-### Mapeamento Bronze → Silver
-
-Colunas renomeadas e derivadas na camada Silver (`seg_rural.seg_cleaned`):
-
-| Coluna Bronze | Coluna Silver | Descrição |
-|---|---|---|
-| `NM_RAZAO_SOCIAL` | `seguradora` | Razão social da seguradora |
-| `NM_MUNICIPIO_PROPRIEDADE` | `nome_mun` | Nome do município da propriedade |
-| `SG_UF_PROPRIEDADE` | `uf` | Sigla da UF da propriedade |
-| `NM_CLASSIF_PRODUTO` | `tipo` | Tipo de seguro (`custeio`, `produtividade`, etc.) |
-| `NM_CULTURA_GLOBAL` | `cultura` | Cultura ou atividade segurada |
-| `NR_AREA_TOTAL` | `area` | Área total segurada |
-| `NR_ANIMAL` | `animal` | Número de animais segurados |
-| `NR_PRODUTIVIDADE_ESTIMADA` | `prod_est` | Produtividade estimada |
-| `NR_PRODUTIVIDADE_SEGURADA` | `prod_seg` | Produtividade segurada |
-| `NivelDeCobertura` | `nivel_cob` | Nível de cobertura do seguro |
-| `VL_LIMITE_GARANTIA` | `total_seg` | Valor segurado |
-| `VL_PREMIO_LIQUIDO` | `premio` | Valor do prêmio |
-| `PE_TAXA` | `taxa` | Percentual da taxa de prêmio |
-| `VL_SUBVENCAO_FEDERAL` | `subvencao` | Valor da subvenção federal |
-| `NR_APOLICE` | `apolice` | Número da apólice |
-| `CD_GEOCMU` | `mun` | Código IBGE do município |
-| `VALOR_INDENIZAÇÃO` | `indenizacao` | Valor pago em indenização |
-| `EVENTO_PREPONDERANTE` | `evento` | Evento causador do sinistro (normalizado) |
-| *(derivada)* | `duracao` | Dias entre início e fim de vigência |
-| *(derivada)* | `tipo_cultura` | Categoria da cultura (`graos`, `frutas`, etc.) |
-| *(derivada)* | `sinistro` | Flag de sinistro: `0` = sem evento, `1` = com evento |
-| *(derivada)* | `sinistralidade` | Razão `indenizacao / premio` |
-| *(derivada)* | `regiao` | Região geográfica do Brasil |
+- [Dicionário Camada Bronze (`seg_rural`)](docs/dicionario_bronze.md)
+- [Dicionário Camada Silver (`seg_cleaned`)](docs/dicionario_silver.md)
