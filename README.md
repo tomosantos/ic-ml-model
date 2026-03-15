@@ -4,16 +4,16 @@ Modelo de ML para predição de sinistro no Seguro Rural brasileiro.
 ## Índice
 - [Explicação](#explicação)
 - [Motivação](#motivação)
+- [Fluxograma do Projeto](#fluxograma-do-projeto)
 - [1. Processo de Ingestão](#1-processo-de-ingestão)
 - [2. Arquitetura Medalhão](#2-arquitetura-medalhão)
 - [3. Orquestração dos Pipelines](#3-orquestração-dos-pipelines)
 - [4. Criação e Detalhamento da Feature Store](#4-criação-e-detalhamento-da-feature-store)
 - [5. Features inputadas no modelo](#5-todas-as-features-inputadas-no-modelo)
 - [6. train.py e predict.py](#6-trainpy-e-predictpy)
-- [7. Resultados (WIP)](#7-resultados-wip)
+- [7. Resultados](#7-resultados)
 - [Melhores práticas e Observabilidade](#melhores-práticas-de-engenharia-aplicadas-no-projeto)
 - [Como executar no Databricks Free Edition](#como-executar-no-databricks-free-edition)
-- [Fluxograma do Projeto](#fluxograma-do-projeto-mermaid)
 - [Dicionário de Dados](#dicionário-de-dados)
 
 ## Explicação
@@ -38,6 +38,10 @@ da apólice. Um modelo preditivo de sinistro ajuda a:
 - reduzir assimetria de informação na decisão de subscrição;
 - priorizar monitoramento de carteiras com maior propensão a perdas;
 - fornecer base técnica para melhorias contínuas em políticas de seguro e subvenção.
+
+### Fluxograma do Projeto
+
+![Fluxograma do Projeto Completo](assets/pipeline-flow.svg)
 
 ## 1. Processo de Ingestão
 
@@ -200,30 +204,47 @@ Fluxo resumido:
 - executa `predict_proba` e gera score + probabilidade por classe;
 - persiste em `04_feature_store.seg_rural.predicoes` com estratégia idempotente.
 
-## 7. Resultados (WIP)
+## 7. Resultados
 
-Esta seção é um espaço em construção para consolidação dos experimentos.
+Nesta seção apresentamos a consolidação dos experimentos do modelo preditivo de sinistro.
 
-### Métricas de avaliação (WIP)
+### Separação do Dataset
 
-- AUC-ROC
-- AUC-PR
-- KS
-- F1-score
-- Lift@10%
+O conjunto de dados foi dividido respeitando um corte temporal Out-of-Time (OOT) (`CUTOFF_OOT = 2025-01-01`).
 
-### OOT (Out-of-Time) (WIP)
+- **Base de Treino e Teste:** Dados anteriores a 2025 (`dtRef < 2025-01-01`). A divisão exata de treino/teste e a proporção de sinistros (`sinistralidade`) podem ser observadas na imagem abaixo:
+  
+  ![Train/Test Split e Sinistro Rate](assets/train_test.png)
 
-- corte temporal operacional: `CUTOFF_OOT = 2025-01-01`
-- treino usa `dtRef < CUTOFF_OOT`
-- scoring usa `dtRef >= CUTOFF_OOT`
-- serão incluídos resultados por janela temporal
+- **Base OOT (Out-of-Time):** Dados correspondentes a 2025 e posteriores. Aplicamos o filtro OOT obtendo uma amostra significativa de observações não vistas pelo modelo, permitindo a validação final da generalização do mesmo.
 
-### Feature importance (WIP)
+  ![Filtro OOT e Observações](assets/oot_dataset.png)
 
-- ranking das variáveis mais relevantes no campeão
-- estabilidade da importância entre versões de modelo
-- análise por grupos de features (histórico, apólice, categóricas)
+### Treinamento e Avaliação de Baseline
+
+Avaliamos diversos algoritmos preditivos buscando selecionar a melhor baseline. Os resultados preliminares sem ajuste de hiperparâmetros evidenciam a performance inicial das alternativas:
+
+![Resultados de Baseline](assets/baseline_results.png)
+
+### Modelo Tuned e Feature Importance
+
+Após a seleção do modelo campeão, foi realizado o processo de tunagem de hiperparâmetros para potencializar as métricas de performance. Abaixo temos as métricas consolidadas do treinamento aprimorado:
+
+![Resultado do Modelo Treinado (Tuned)](assets/tuned_results.png)
+
+Para fins de explicabilidade e entendimento do risco, aferimos a contribuição de cada variável através da Feature Importance abordando as 20 variáveis mais influentes (top 20):
+
+![Feature Importance Top 20](assets/feature_importance_top20.png)
+
+### Inferência e Monitoramento (Predict)
+
+Em etapa de produção simulada (`predict.py`), avaliamos o processo de score das apólices do período OOT, gerando a predição para as novas linhas:
+
+![Dados Gerados na Inferência Predict](assets/predict_data.png)
+
+Por fim, consolidamos o monitoramento com os resultados gerados, estruturando uma tabela com os scores e probabilidades prontas para acompanhamento de negócio e backtesting:
+
+![Tabela de Monitoramento Predict](assets/predict_results.png)
 
 ## Melhores práticas de engenharia aplicadas no projeto
 
@@ -330,52 +351,6 @@ Após cada etapa, valide com queries simples:
 	na ordem indicada acima;
 - mantenha os nomes de catálogos/schemas/tabelas exatamente como definidos em
 	`src/lib/const.py` para evitar quebra de dependências.
-
-## Fluxograma do Projeto (Mermaid)
-
-```mermaid
-flowchart TB
-		subgraph Ingestao
-				A[MAPA/PSR XLSX] --> B[src/ingestion/ingestion.py]
-				B --> C[/Volumes/00_raw/data/seguro_rural/]
-		end
-
-		subgraph Medallion
-				C --> D[src/pipeline/raw_to_bronze.py]
-				D --> E[01_bronze.seg_rural.historical_seg]
-				D --> F[01_bronze.seg_rural.seg_2025]
-				E --> G[src/pipeline/bronze_to_silver.py]
-				F --> G
-				G --> H[02_silver.seg_rural.seg_cleaned]
-				H --> I[src/pipeline/silver_to_gold.py]
-				I --> J[03_gold.seg_rural.fs_seguro_features]
-				I --> K[03_gold.seg_rural.fs_seguro_labels]
-		end
-
-		subgraph FeatureStore
-				H --> L[src/feature_store/compute_feature_store.py]
-				L --> M[04_feature_store.seg_rural.fs_historico_municipio]
-				L --> N[04_feature_store.seg_rural.fs_risco_cultura_uf]
-				L --> O[04_feature_store.seg_rural.fs_apolice_financeiro]
-				L --> P[04_feature_store.seg_rural.fs_risco_seguradora_cultura]
-				L --> Q[04_feature_store.seg_rural.fs_anomalia_taxa]
-				L --> R[04_feature_store.seg_rural.fs_concentracao_carteira]
-		end
-
-		subgraph Modelagem
-				J --> S[src/model_sinistro/train.py]
-				K --> S
-				M --> S
-				N --> S
-				O --> S
-				P --> S
-				Q --> S
-				R --> S
-				S --> T[MLflow + UC Model Registry]
-				T --> U[src/model_sinistro/predict.py]
-				U --> V[04_feature_store.seg_rural.predicoes]
-		end
-```
 
 ---
 
