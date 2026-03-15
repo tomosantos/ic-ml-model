@@ -358,9 +358,15 @@ with mlflow.start_run(run_name=champion_name) as run:
     fe.log_model(
         model=best_pipeline,
         artifact_path='model',
-        flavor=mlflow.xgboost,
+        flavor=mlflow.sklearn,
         training_set=training_set,
         registered_model_name='04_feature_store.seg_rural.sinistro',
+    )
+
+    # Log separado para carregamento direto em predict.py
+    mlflow.sklearn.log_model(
+        sk_model=best_pipeline,
+        artifact_path='sklearn_pipeline'
     )
 
 print(f'✓ Modelo registrado: 04_feature_store.seg_rural.sinistro')

@@ -32,8 +32,7 @@ mlflow.set_registry_uri('databricks-uc')
 
 # DBTITLE 1,Parâmetros
 CUTOFF_OOT = pd.Timestamp('2025-01-01')
-model_version = '7'
-
+model_version = '9'
 
 if not isinstance(CUTOFF_OOT, pd.Timestamp):
     raise ValueError('CUTOFF_OOT deve ser pandas.Timestamp')
@@ -49,7 +48,7 @@ model_name = '04_feature_store.seg_rural.sinistro'
 model_uri    = f'models:/{model_name}/{model_version}'
 model_pyfunc = mlflow.pyfunc.load_model(model_uri)
 run_id       = model_pyfunc.metadata.run_id
-model        = mlflow.xgboost.load_model(f'runs:/{run_id}/model')
+model        = mlflow.sklearn.load_model(f'runs:/{run_id}/sklearn_pipeline')
 
 if model_version == 'latest':
     versions       = MlflowClient().get_latest_versions(model_name)
@@ -128,22 +127,23 @@ df_predict = derive_features(df_predict)
 # DBTITLE 1,Inferência
 probas = model.predict_proba(df_predict[model.feature_names_in_])
 
-columns_id = ['dtRef', 'descModelName', 'nrModelVersion', 'apolice']
+columns_id = ['dtRef', 'model_name', 'model_version', 'apolice']
 
 df_model = df_predict[['dtRef', 'apolice']].copy()
-df_model['descModelName']  = model_name
-df_model['nrModelVersion'] = actual_version
-df_model['nrScore']        = probas[:, 1]           # prob(sinistro=1) para ranking
+df_model['model_name']  = model_name
+df_model['model_version'] = actual_version
+df_model['score']        = probas[:, 1]           # prob(sinistro=1) para ranking
 df_model[list(model.classes_)] = probas
 
 df_long = (
     df_model
-    .set_index(columns_id + ['nrScore'])
+    .set_index(columns_id + ['score'])
     .stack()
     .reset_index()
 )
-df_long.columns = columns_id + ['nrScore', 'descLabel', 'nrProbLabel']
-df_long['descLabel'] = df_long['descLabel'].astype(int)
+df_long.columns = columns_id + ['score', 'label', 'prob_label']
+df_long['label'] = df_long['label'].astype(int)
+df_long = df_long.drop(columns=['score'])
 
 print(f'✓ Inferência concluída: {len(df_long):,} linhas ({len(df_long) // 2:,} apólices × 2 classes)')
 
@@ -152,35 +152,26 @@ print(f'✓ Inferência concluída: {len(df_long):,} linhas ({len(df_long) // 2:
 # DBTITLE 1,Persistência
 sdf = spark.createDataFrame(df_long)
 
-# Idempotência — remove predições anteriores para o mesmo mês/modelo
-if spark.catalog.tableExists(TABLE_PREDICOES):
-    spark.sql(f"""
-        DELETE FROM {TABLE_PREDICOES}
-        WHERE dtRef >= DATE('{CUTOFF_OOT.date()}')
-          AND descModelName = '{model_name}'
-    """)
-else:
-    spark.sql(f"""
-        CREATE TABLE {TABLE_PREDICOES} (
-            dtRef DATE,
-            descModelName STRING,
-            nrModelVersion INT,
-            apolice STRING,
-            nrScore DOUBLE,
-            descLabel INT,
-            nrProbLabel DOUBLE
-        )
-        USING DELTA
-        PARTITIONED BY (descModelName)
-    """)
-
+# Full load — sobrescreve todas as predições para dtRef >= CUTOFF_OOT e infere schema
 (
     sdf.write
     .format('delta')
-    .mode('append')
-    .partitionBy(['descModelName'])
+    .mode('overwrite')
+    .option('overwriteSchema', 'true')
+    .partitionBy(['model_name'])
     .saveAsTable(TABLE_PREDICOES)
 )
 
 print(f'✓ {len(df_long):,} predições salvas em {TABLE_PREDICOES}')
 print(f'  dtRef>={CUTOFF_OOT.date()}  model={model_name}  version={actual_version}')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT 
+# MAGIC   t1.*,
+# MAGIC   t2.sinistro
+# MAGIC FROM `04_feature_store`.seg_rural.predicoes t1
+# MAGIC LEFT JOIN `02_silver`.seg_rural.seg_cleaned t2
+# MAGIC   ON t1.apolice = t2.apolice
+# MAGIC   AND t1.dtRef = DATE_TRUNC('MONTH', t2.dt_inicio_vigencia)
