@@ -69,6 +69,7 @@ def derive_features(df: pd.DataFrame) -> pd.DataFrame:
                        NaN quando denominador <= 0, preservando ausência de histórico.
       nrSinMes       — sin(2π × nrMesPlantio / 12)
       nrCosMes       — cos(2π × nrMesPlantio / 12)
+      Ver: https://shrmtmt.medium.com/understand-the-capabilities-of-cyclic-encoding-5b68f831387e
 
     Args:
         df: DataFrame com pelo menos as colunas
