@@ -211,6 +211,10 @@ for col_name in colunas_string:
 # DBTITLE 1,Criação da coluna duracao
 df = df.withColumn('DT_INICIO_VIGENCIA', to_date(F.col('DT_INICIO_VIGENCIA')))
 df = df.withColumn('DT_FIM_VIGENCIA',    to_date(F.col('DT_FIM_VIGENCIA')))
+
+# Remove apólice com dt_fim_vigencia implausível (typo detectado: 5207-05-09)
+df = df.filter(F.year(F.col('DT_FIM_VIGENCIA')) <= 2035)
+
 df = df.withColumn('duracao', datediff(F.col('DT_FIM_VIGENCIA'), F.col('DT_INICIO_VIGENCIA')))
 
 # COMMAND ----------

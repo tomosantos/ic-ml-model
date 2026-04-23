@@ -461,26 +461,24 @@ display(df_hyperparams)
 # COMMAND ----------
 
 # DBTITLE 1,[0] Carga do modelo campeão e conjunto de predições
-# — Conjunto OOT: da tabela de predições (formato long → pivotar para score) —
+# — Conjunto OOT: escores apenas (apólices 2025+ ainda não maturadas — sinistro indisponível) —
 df_predicoes = spark.table(TABLE_PREDICOES).toPandas()
 df_predicoes['dtRef'] = pd.to_datetime(df_predicoes['dtRef'])
 
-# A tabela predicoes está em formato long com colunas: dtRef, apolice, model_name,
-# model_version, label, prob_label. Filtrar label=1 para obter score por apólice.
-df_scores_oot = (
-    df_predicoes[df_predicoes['label'] == 1][['dtRef', 'apolice', 'prob_label']]
+# Tabela em formato long — filtrar label=1 para obter prob(sinistro=1) por apólice
+df_oot = (
+    df_predicoes[
+        (df_predicoes['label'] == 1) &
+        (df_predicoes['dtRef'] >= CUTOFF_OOT)
+    ][['dtRef', 'apolice', 'prob_label']]
     .rename(columns={'prob_label': SCORE_COL})
     .copy()
 )
 
-# Filtrar período OOT e juntar com Silver para obter o rótulo verdadeiro
-df_silver_oot = df_silver[df_silver['dt_inicio_vigencia'] >= CUTOFF_OOT][['apolice', 'sinistro']].copy()
-df_oot = df_scores_oot.merge(df_silver_oot, on='apolice', how='inner')
-
 assert SCORE_COL in df_oot.columns, f"Coluna '{SCORE_COL}' não encontrada em df_oot"
 assert len(df_oot) > 0, 'df_oot vazio — verificar TABLE_PREDICOES e período OOT'
 
-print(f'OOT: {len(df_oot):,} apólices | sinistro={df_oot["sinistro"].mean():.4f}')
+print(f'OOT: {len(df_oot):,} apólices (sem rótulos — ciclo não encerrado em 2025)')
 
 # — Conjunto de Teste in-sample: recriar split idêntico ao train.py —
 _sql_path = os.path.join('../model_sinistro/', 'fl_sinistro.sql')
@@ -518,25 +516,21 @@ _, X_test, _, y_test = train_test_split(X, y, test_size=0.3, random_state=42, st
 loaded_model = mlflow.sklearn.load_model(f'runs:/{run_id}/sklearn_pipeline')
 y_prob_test  = loaded_model.predict_proba(X_test)[:, 1]
 
-print(f'Teste: {len(X_test):,} | OOT: {len(df_oot):,}')
+print(f'Teste (in-sample): {len(X_test):,} | OOT (escores): {len(df_oot):,}')
 
 # COMMAND ----------
 
-# DBTITLE 1,[4.3.1] Curva ROC — Teste vs. OOT
+# DBTITLE 1,[4.3.1] Curva ROC — Conjunto de Teste
 fpr_test, tpr_test, _ = roc_curve(y_test, y_prob_test)
 auc_test = roc_auc_score(y_test, y_prob_test)
 
-fpr_oot, tpr_oot, _ = roc_curve(df_oot['sinistro'], df_oot[SCORE_COL])
-auc_oot = roc_auc_score(df_oot['sinistro'], df_oot[SCORE_COL])
-
 fig, ax = plt.subplots(figsize=(7, 6))
 ax.plot(fpr_test, tpr_test, color=PALETTE_MAIN, lw=2, label=f'Teste (AUC = {auc_test:.3f})')
-ax.plot(fpr_oot,  tpr_oot,  color='#DC2626',    lw=2, label=f'OOT  (AUC = {auc_oot:.3f})', linestyle='--')
 ax.plot([0, 1], [0, 1], color='#94A3B8', lw=1, linestyle=':')
 
 ax.set_xlabel('Taxa de Falsos Positivos')
 ax.set_ylabel('Taxa de Verdadeiros Positivos (Sensibilidade)')
-ax.set_title('Curva ROC — Conjunto de Teste e Período OOT')
+ax.set_title('Curva ROC — Conjunto de Teste')
 ax.legend(loc='lower right')
 ax.annotate(
     'Regressão logística simples\n(Garcia, 2023): AUC = 0,56',
@@ -546,19 +540,16 @@ save_fig(fig, 'fig_3_1_roc_curves')
 
 # COMMAND ----------
 
-# DBTITLE 1,[4.3.2] Curva Precision-Recall
+# DBTITLE 1,[4.3.2] Curva Precision-Recall — Conjunto de Teste
 prec_test, rec_test, _ = precision_recall_curve(y_test, y_prob_test)
 ap_test = average_precision_score(y_test, y_prob_test)
-
-prec_oot, rec_oot, _ = precision_recall_curve(df_oot['sinistro'], df_oot[SCORE_COL])
-ap_oot = average_precision_score(df_oot['sinistro'], df_oot[SCORE_COL])
 
 taxa_sinistro_global = df_silver['sinistro'].mean()
 
 fig, ax = plt.subplots(figsize=(7, 6))
 ax.plot(rec_test, prec_test, color=PALETTE_MAIN, lw=2, label=f'Teste (AP = {ap_test:.3f})')
-ax.plot(rec_oot,  prec_oot,  color='#DC2626',    lw=2, label=f'OOT  (AP = {ap_oot:.3f})', linestyle='--')
-ax.axhline(taxa_sinistro_global, color='#94A3B8', lw=1.5, linestyle=':', label=f'Baseline aleatório: {taxa_sinistro_global:.1%}')
+ax.axhline(taxa_sinistro_global, color='#94A3B8', lw=1.5, linestyle=':',
+           label=f'Baseline aleatório: {taxa_sinistro_global:.1%}')
 ax.annotate(
     f'Baseline aleatório: {taxa_sinistro_global:.1%}',
     xy=(0.7, taxa_sinistro_global + 0.01), fontsize=8, color='#64748B',
@@ -566,33 +557,47 @@ ax.annotate(
 
 ax.set_xlabel('Recall')
 ax.set_ylabel('Precisão')
-ax.set_title('Curva Precision-Recall — Conjunto de Teste e Período OOT')
+ax.set_title('Curva Precision-Recall — Conjunto de Teste')
 ax.legend(loc='upper right')
 save_fig(fig, 'fig_3_2_pr_curves')
 
 # COMMAND ----------
 
 # DBTITLE 1,[4.3.3] Distribuição de probabilidades preditas por classe
-fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+# Painel esquerdo: teste (com separação por classe) | Painel direito: OOT (monitoramento — sem rótulos)
+fig, (ax_test, ax_oot) = plt.subplots(1, 2, figsize=(13, 5))
 
-for ax, (scores, labels, title) in zip(axes, [
-    (y_prob_test,         y_test.values,             'Conjunto de Teste'),
-    (df_oot[SCORE_COL].values, df_oot['sinistro'].values, 'Período OOT'),
-]):
-    ax.hist(scores[labels == 0], bins=50, alpha=0.65, color=PALETTE_NEG,  label='Sem sinistro', density=True)
-    ax.hist(scores[labels == 1], bins=50, alpha=0.65, color=PALETTE_MAIN, label='Com sinistro', density=True)
-    ks_stat = ks_2samp(scores[labels == 1], scores[labels == 0]).statistic
-    ax.set_title(f'{title} (KS = {ks_stat:.3f})')
-    ax.set_xlabel('Probabilidade Predita de Sinistro')
-    ax.set_ylabel('Densidade')
-    ax.legend()
+scores_test  = y_prob_test
+labels_test  = y_test.values
+ks_stat_test = ks_2samp(scores_test[labels_test == 1], scores_test[labels_test == 0]).statistic
 
-fig.suptitle('Distribuição dos Escores Preditos por Classe', fontsize=13)
+ax_test.hist(scores_test[labels_test == 0], bins=50, alpha=0.65, color=PALETTE_NEG,
+             label='Sem sinistro', density=True)
+ax_test.hist(scores_test[labels_test == 1], bins=50, alpha=0.65, color=PALETTE_MAIN,
+             label='Com sinistro', density=True)
+ax_test.set_title(f'Conjunto de Teste (KS = {ks_stat_test:.3f})')
+ax_test.set_xlabel('Probabilidade Predita de Sinistro')
+ax_test.set_ylabel('Densidade')
+ax_test.legend()
+
+scores_oot = df_oot[SCORE_COL].values
+ax_oot.hist(scores_oot, bins=50, alpha=0.8, color=PALETTE_MAIN, density=True)
+ax_oot.axvline(scores_oot.mean(), color='#DC2626', linestyle='--', linewidth=1.5,
+               label=f'Média: {scores_oot.mean():.3f}')
+ax_oot.set_title(f'Período OOT — Monitoramento de Escores (n={len(scores_oot):,})')
+ax_oot.set_xlabel('Probabilidade Predita de Sinistro')
+ax_oot.set_ylabel('Densidade')
+ax_oot.legend()
+ax_oot.text(0.98, 0.95, 'Rótulos indisponíveis\n(ciclo não encerrado)',
+            transform=ax_oot.transAxes, ha='right', va='top',
+            fontsize=8, color='#64748B', style='italic')
+
+fig.suptitle('Distribuição dos Escores Preditos', fontsize=13)
 save_fig(fig, 'fig_3_3_score_distribution')
 
 # COMMAND ----------
 
-# DBTITLE 1,[4.3.4] Tabela comparativa de métricas — Teste vs. OOT
+# DBTITLE 1,[4.3.4] Tabela de métricas — Conjunto de Teste
 def compute_metrics_full(y_true, y_prob):
     y_pred   = (y_prob >= 0.5).astype(int)
     decil_10 = np.percentile(y_prob, 90)
@@ -606,18 +611,18 @@ def compute_metrics_full(y_true, y_prob):
     }
 
 
-metrics_test = compute_metrics_full(y_test.values,              y_prob_test)
-metrics_oot  = compute_metrics_full(df_oot['sinistro'].values,  df_oot[SCORE_COL].values)
+metrics_test = compute_metrics_full(y_test.values, y_prob_test)
 
 df_metrics = pd.DataFrame({
-    'Métrica':            list(metrics_test.keys()),
-    'Teste':              list(metrics_test.values()),
-    'OOT (2025)':         list(metrics_oot.values()),
-    'Delta (OOT−Teste)':  [metrics_oot[k] - metrics_test[k] for k in metrics_test],
+    'Métrica': list(metrics_test.keys()),
+    'Teste':   list(metrics_test.values()),
+    'OOT (2025)': ['N/D'] * len(metrics_test),
 })
-display(df_metrics.round(4))
-df_metrics.to_csv(os.path.join(FIGURES_DIR, 'tab_3_4_metrics_test_oot.csv'), index=False)
-print('✓ tab_3_4_metrics_test_oot.csv salvo')
+df_metrics.attrs['nota'] = 'OOT indisponível: apólices 2025 ainda não maturadas (ciclo não encerrado).'
+display(df_metrics.assign(Teste=df_metrics['Teste'].round(4)))
+df_metrics.to_csv(os.path.join(FIGURES_DIR, 'tab_3_4_metrics_test.csv'), index=False)
+print('✓ tab_3_4_metrics_test.csv salvo')
+print('  Nota: OOT indisponível — apólices 2025 ainda não maturadas.')
 
 # COMMAND ----------
 
