@@ -93,6 +93,7 @@ def save_fig(fig, name: str):
         mlflow.log_artifact(path, artifact_path='figures')
     except Exception:
         pass
+    display(fig)
     plt.close(fig)
     print(f'✓ figura salva: {path}')
 
