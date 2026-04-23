@@ -69,7 +69,13 @@ matplotlib.rcParams.update({
     'figure.titlesize': 14,
 })
 
-FIGURES_DIR = '/tmp/ic_ml_figures'
+try:
+    _nb_dir = os.path.dirname(os.path.abspath(__file__))
+    FIGURES_DIR = os.path.normpath(os.path.join(_nb_dir, '../../assets/analysis'))
+except NameError:
+    _nb_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+    FIGURES_DIR = '/Workspace' + _nb_path.rsplit('/src/', 1)[0] + '/assets/analysis'
+
 os.makedirs(FIGURES_DIR, exist_ok=True)
 
 CUTOFF_OOT    = pd.Timestamp('2025-01-01')
