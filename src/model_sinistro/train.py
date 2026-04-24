@@ -345,6 +345,14 @@ with mlflow.start_run(run_name=champion_name) as run:
     for param_name, param_value in grid_search.best_params_.items():
         mlflow.log_param(param_name, param_value)
 
+    # Log per-model baselines for the comparison heatmap
+    for name, r in baseline_results.items():
+        for k, v in r['train'].items():
+            mlflow.log_metric(f'baseline_{name}_{k}_train', v)
+        for k, v in r['test'].items():
+            mlflow.log_metric(f'baseline_{name}_{k}_test', v)
+
+    # Generic champion-baseline keys (backward compat)
     for k, v in baseline_results[champion_name]['train'].items():
         mlflow.log_metric(f'baseline_{k}_train', v)
     for k, v in baseline_results[champion_name]['test'].items():
