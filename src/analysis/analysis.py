@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %pip install -q matplotlib seaborn scikit-learn xgboost mlflow databricks-feature-engineering
+# MAGIC %pip install -q matplotlib seaborn scikit-learn xgboost mlflow databricks-feature-engineering plotly kaleido
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -7,6 +7,7 @@
 # DBTITLE 1,Setup
 import glob as _glob
 import os
+import re as _re
 import sys
 import warnings
 
@@ -19,6 +20,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import seaborn as sns
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
 from matplotlib.patches import Patch
 from scipy.stats import ks_2samp
 from sklearn.metrics import (
@@ -52,12 +56,18 @@ from preprocessing import (
 # COMMAND ----------
 
 # DBTITLE 1,Configurações globais
-PALETTE_MAIN         = '#2563EB'
-PALETTE_NEG          = '#64748B'
-PALETTE_REGION       = ['#1D4ED8', '#2563EB', '#3B82F6', '#60A5FA', '#93C5FD']
-PALETTE_MODELS       = ['#1E3A5F', '#2563EB', '#38BDF8', '#6EE7B7']
-PALETTE_BLUE_PARETO  = ['#1D4ED8', '#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE']
-PALETTE_GREEN_PARETO = ['#065F46', '#047857', '#059669', '#10B981', '#34D399', '#6EE7B7', '#A7F3D0']
+PLOTLY_TEMPLATE = 'plotly_white'
+
+def _viridis(n: int) -> list:
+    return px.colors.sample_colorscale('Viridis', [i / max(n - 1, 1) for i in range(n)])
+
+def _greens(n: int) -> list:
+    return px.colors.sample_colorscale('Greens', [0.3 + 0.6 * i / max(n - 1, 1) for i in range(n)])
+
+PALETTE_MAIN     = '#2A788E'   # viridis teal midpoint
+PALETTE_NEG      = '#7E7E7E'
+PALETTE_ACCENT   = '#FDE725'   # viridis yellow — secondary lines/areas
+PALETTE_LINE_CUM = '#D62728'   # red for cumulative Pareto line
 
 sns.set_theme(style='ticks', font='DejaVu Sans')
 matplotlib.rcParams.update({
@@ -92,17 +102,26 @@ def save_fig(fig, name: str):
     path = os.path.join(FIGURES_DIR, f'{name}.png')
     if os.path.exists(path):
         os.remove(path)
-    fig.savefig(path, bbox_inches='tight', facecolor='white')
-    try:
-        mlflow.log_artifact(path, artifact_path='figures')
-    except Exception:
-        pass
-    display(fig)
-    plt.close(fig)
+    if hasattr(fig, 'write_image'):  # plotly
+        fig.write_image(path, width=1400, height=fig.layout.height or 600, scale=2)
+        try:
+            mlflow.log_artifact(path, artifact_path='figures')
+        except Exception:
+            pass
+        try:
+            displayHTML(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+        except Exception:
+            fig.show()
+    else:  # matplotlib
+        fig.savefig(path, bbox_inches='tight', facecolor='white')
+        try:
+            mlflow.log_artifact(path, artifact_path='figures')
+        except Exception:
+            pass
+        display(fig)
+        plt.close(fig)
     print(f'✓ figura salva: {path}')
 
-
-import re as _re
 
 _FI_NAME_MAP = {
     'AnoPlantio':              'Ano de Plantio',
@@ -145,7 +164,7 @@ EVENTO_LABEL_MAP = {
     'chuva':                     'Chuva',
     'vento':                     'Vento',
     "INUNDACAO/TROMBA D'AGUA":   "Inundação/Tromba d'Água",
-    'INUNDACAO/TROMBA D´AGUA': "Inundação/Tromba d'Água",
+    'INUNDACAO/TROMBA D´AGUA':   "Inundação/Tromba d'Água",
     'INUNDACAO':                 'Inundação',
     'temp.':                     'Temperatura',
     'incendio':                  'Incêndio',
@@ -201,42 +220,40 @@ df_anual = (
     .reset_index()
 )
 df_anual = df_anual[df_anual['ano'] >= 2016].reset_index(drop=True)
+anos = df_anual['ano'].astype(str).tolist()
 
-fig, ax1 = plt.subplots(figsize=(12, 5))
-ax2 = ax1.twinx()
+fig = make_subplots(specs=[[{'secondary_y': True}]])
 
-x     = np.arange(len(df_anual))
-anos  = df_anual['ano'].tolist()
-width = 0.6
+fig.add_trace(go.Bar(
+    x=anos, y=df_anual['total_apolices'],
+    name='Apólices',
+    marker_color=PALETTE_MAIN,
+    text=[f'{v:,.0f}' for v in df_anual['total_apolices']],
+    textposition='outside',
+    textfont=dict(size=10, color='#1E293B'),
+), secondary_y=False)
 
-bars = ax1.bar(x, df_anual['total_apolices'], width=width, color=PALETTE_MAIN, alpha=0.85, label='Apólices')
+fig.add_trace(go.Scatter(
+    x=anos, y=df_anual['taxa_sinistro'],
+    name='Taxa de Sinistro',
+    mode='lines+markers+text',
+    line=dict(color=PALETTE_ACCENT, dash='dash', width=2.5),
+    marker=dict(size=7, color=PALETTE_ACCENT, line=dict(color='#333', width=1)),
+    text=[f'{v:.1%}' for v in df_anual['taxa_sinistro']],
+    textposition='top center',
+    textfont=dict(size=9, color='#997700'),
+), secondary_y=True)
 
-for bar, val in zip(bars, df_anual['total_apolices']):
-    ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1500,
-             f'{val:,.0f}', ha='center', va='bottom', fontsize=7.5, color='#1E293B')
-
-ax2.plot(x, df_anual['taxa_sinistro'], color='#DC2626', marker='o', linestyle='--',
-         linewidth=2, markersize=6, label='Taxa de sinistro', zorder=5)
-
-for xi, taxa in zip(x, df_anual['taxa_sinistro']):
-    ax2.text(xi, taxa + 0.004, f'{taxa:.1%}', ha='center', va='bottom', fontsize=8, color='#DC2626')
-
-ax1.set_ylim(0, df_anual['total_apolices'].max() * 1.25)
-ax2.set_ylim(0, df_anual['taxa_sinistro'].max() * 1.50)
-
-ax1.set_xticks(x)
-ax1.set_xticklabels(anos)
-ax1.set_xlabel('Ano')
-ax1.set_ylabel('Total de Apólices')
-ax2.set_ylabel('Taxa de Sinistro')
-ax2.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
-
-lines1, labels1 = ax1.get_legend_handles_labels()
-lines2, labels2 = ax2.get_legend_handles_labels()
-ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
-
-ax1.set_title('Evolução do Volume de Apólices e Taxa de Sinistro (2016–2025)')
-sns.despine(ax=ax1, right=False)
+fig.update_layout(
+    title='Evolução do Volume de Apólices e Taxa de Sinistro (2016–2025)',
+    template=PLOTLY_TEMPLATE,
+    legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='left', x=0),
+    yaxis=dict(title='Total de Apólices', tickformat=',.0f', rangemode='tozero'),
+    yaxis2=dict(title='Taxa de Sinistro', tickformat='.1%', rangemode='tozero'),
+    xaxis=dict(title='Ano'),
+    bargap=0.3,
+    height=500,
+)
 save_fig(fig, 'fig_1_1_volume_anual')
 display(df_anual)
 
@@ -255,53 +272,60 @@ df_regiao = (
     .reset_index()
 )
 df_regiao['pct_total'] = df_regiao['total'] / df_regiao['total'].sum()
-
 df_regiao_taxa = df_regiao.sort_values('taxa', ascending=False).reset_index(drop=True)
 n = len(df_regiao)
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+fig = make_subplots(
+    rows=1, cols=2,
+    subplot_titles=['Total de Apólices por Região', 'Taxa de Sinistro por Região'],
+    specs=[[{'secondary_y': True}, {'secondary_y': False}]],
+    horizontal_spacing=0.12,
+)
 
-# Left: Pareto vertical — total de apólices (blue palette)
-x1     = np.arange(n)
-cores_b = PALETTE_BLUE_PARETO[:n]
-bars1   = ax1.bar(x1, df_regiao['total'], color=cores_b, edgecolor='white', linewidth=0.5)
+cum_reg = (df_regiao['total'].cumsum() / df_regiao['total'].sum() * 100).values
 
-ax1_r       = ax1.twinx()
-cum1        = (df_regiao['total'].cumsum() / df_regiao['total'].sum() * 100).values
-ax1_r.plot(x1, cum1, color='#DC2626', marker='o', linestyle='--', linewidth=1.5, markersize=5)
-for xi, ci in zip(x1, cum1):
-    ax1_r.text(xi, ci + 2, f'{ci:.0f}%', ha='center', va='bottom', fontsize=7.5, color='#DC2626')
+fig.add_trace(go.Bar(
+    x=df_regiao['regiao'], y=df_regiao['total'],
+    name='Total de Apólices',
+    marker_color=_viridis(n),
+    text=[f'{v:,.0f}' for v in df_regiao['total']],
+    textposition='outside',
+    textfont=dict(size=9),
+    showlegend=False,
+), row=1, col=1, secondary_y=False)
 
-for bar, val in zip(bars1, df_regiao['total']):
-    ax1.text(bar.get_x() + bar.get_width() / 2,
-             bar.get_height() + df_regiao['total'].max() * 0.01,
-             f'{val:,.0f}', ha='center', va='bottom', fontsize=8)
+fig.add_trace(go.Scatter(
+    x=df_regiao['regiao'], y=cum_reg,
+    name='% Acumulado',
+    mode='lines+markers+text',
+    line=dict(color=PALETTE_LINE_CUM, dash='dash', width=2),
+    marker=dict(size=6, color=PALETTE_LINE_CUM),
+    text=[f'{v:.0f}%' for v in cum_reg],
+    textposition='top center',
+    textfont=dict(size=9, color=PALETTE_LINE_CUM),
+    showlegend=False,
+), row=1, col=1, secondary_y=True)
 
-ax1.set_xticks(x1)
-ax1.set_xticklabels(df_regiao['regiao'], rotation=20, ha='right')
-ax1.set_ylabel('Total de Apólices')
-ax1.set_title('Total de Apólices por Região')
-ax1_r.set_ylim(0, 115)
-ax1_r.yaxis.set_major_formatter(mticker.PercentFormatter())
-ax1_r.set_ylabel('% Acumulado')
-ax1.grid(False)
-ax1_r.grid(False)
+fig.add_trace(go.Bar(
+    x=df_regiao_taxa['taxa'] * 100, y=df_regiao_taxa['regiao'],
+    orientation='h',
+    name='Taxa de Sinistro',
+    marker_color=_greens(n),
+    text=[f'{v:.1f}%' for v in df_regiao_taxa['taxa'] * 100],
+    textposition='outside',
+    textfont=dict(size=9),
+    showlegend=False,
+), row=1, col=2)
 
-# Right: taxa de sinistro horizontal bars (green palette, sorted by taxa desc)
-y2     = np.arange(n)
-cores_g = PALETTE_GREEN_PARETO[:n]
-bars2   = ax2.barh(y2, df_regiao_taxa['taxa'] * 100, color=cores_g, edgecolor='white', linewidth=0.5)
-ax2.bar_label(bars2, fmt='{:.1f}%', padding=4)
-ax2.set_yticks(y2)
-ax2.set_yticklabels(df_regiao_taxa['regiao'])
-ax2.invert_yaxis()
-ax2.set_xlabel('Taxa de Sinistro (%)')
-ax2.set_title('Taxa de Sinistro por Região (%)')
-ax2.grid(False)
-sns.despine(ax=ax2, left=True, bottom=False)
+fig.update_layout(
+    title='Distribuição Geográfica do PSR (2016–2025)',
+    template=PLOTLY_TEMPLATE,
+    height=500,
+)
+fig.update_yaxes(title_text='Total de Apólices', tickformat=',.0f', row=1, col=1, secondary_y=False)
+fig.update_yaxes(title_text='% Acumulado', ticksuffix='%', range=[0, 115], row=1, col=1, secondary_y=True)
+fig.update_xaxes(title_text='Taxa de Sinistro (%)', ticksuffix='%', tickformat='.1f', row=1, col=2)
 
-fig.suptitle('Distribuição Geográfica do PSR (2016–2025)')
-plt.tight_layout()
 save_fig(fig, 'fig_1_2_distribuicao_regional')
 
 tab_1_2 = df_regiao[['regiao', 'total', 'pct_total', 'sinistros', 'taxa']].copy()
@@ -327,55 +351,76 @@ df_cultura = (
 df_cultura['cultura_fmt'] = df_cultura['tipo_cultura'].map(_fmt_cultura)
 df_cultura_taxa = df_cultura.sort_values('taxa', ascending=False).reset_index(drop=True)
 taxa_media_global = df_silver['sinistro'].mean()
+n_c = len(df_cultura)
 
-n_c     = len(df_cultura)
-cores_b = (PALETTE_BLUE_PARETO  * (n_c // len(PALETTE_BLUE_PARETO)  + 1))[:n_c]
-cores_g = (PALETTE_GREEN_PARETO * (n_c // len(PALETTE_GREEN_PARETO) + 1))[:n_c]
+fig = make_subplots(
+    rows=1, cols=2,
+    subplot_titles=['Total de Apólices por Tipo de Cultura', 'Taxa de Sinistro por Tipo de Cultura'],
+    specs=[[{'secondary_y': True}, {'secondary_y': False}]],
+    horizontal_spacing=0.14,
+)
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, max(5, n_c * 0.55)))
+cum_cult = (df_cultura['total'].cumsum() / df_cultura['total'].sum() * 100).values
 
-# Left: Pareto vertical — total de apólices (blue palette)
-x1   = np.arange(n_c)
-bars1 = ax1.bar(x1, df_cultura['total'], color=cores_b, edgecolor='white', linewidth=0.5)
+fig.add_trace(go.Bar(
+    x=df_cultura['cultura_fmt'], y=df_cultura['total'],
+    name='Total de Apólices',
+    marker_color=_viridis(n_c),
+    text=[f'{v:,.0f}' for v in df_cultura['total']],
+    textposition='outside',
+    textfont=dict(size=8),
+    showlegend=False,
+), row=1, col=1, secondary_y=False)
 
-ax1_r = ax1.twinx()
-cum1  = (df_cultura['total'].cumsum() / df_cultura['total'].sum() * 100).values
-ax1_r.plot(x1, cum1, color='#DC2626', marker='o', linestyle='--', linewidth=1.5, markersize=4)
-for xi, ci in zip(x1, cum1):
-    ax1_r.text(xi, ci + 2, f'{ci:.0f}%', ha='center', va='bottom', fontsize=6.5, color='#DC2626')
+fig.add_trace(go.Scatter(
+    x=df_cultura['cultura_fmt'], y=cum_cult,
+    name='% Acumulado',
+    mode='lines+markers+text',
+    line=dict(color=PALETTE_LINE_CUM, dash='dash', width=2),
+    marker=dict(size=5, color=PALETTE_LINE_CUM),
+    text=[f'{v:.0f}%' for v in cum_cult],
+    textposition='top center',
+    textfont=dict(size=7.5, color=PALETTE_LINE_CUM),
+    showlegend=False,
+), row=1, col=1, secondary_y=True)
 
-for bar, val in zip(bars1, df_cultura['total']):
-    ax1.text(bar.get_x() + bar.get_width() / 2,
-             bar.get_height() + df_cultura['total'].max() * 0.01,
-             f'{val:,.0f}', ha='center', va='bottom', fontsize=7)
+fig.add_trace(go.Bar(
+    x=df_cultura_taxa['taxa'] * 100, y=df_cultura_taxa['cultura_fmt'],
+    orientation='h',
+    name='Taxa de Sinistro',
+    marker_color=_greens(n_c),
+    text=[f'{v:.1f}%' for v in df_cultura_taxa['taxa'] * 100],
+    textposition='outside',
+    textfont=dict(size=8),
+    showlegend=False,
+), row=1, col=2)
 
-ax1.set_xticks(x1)
-ax1.set_xticklabels(df_cultura['cultura_fmt'], rotation=35, ha='right', fontsize=8)
-ax1.set_ylabel('Total de Apólices')
-ax1.set_title('Total de Apólices por Tipo de Cultura')
-ax1_r.set_ylim(0, 115)
-ax1_r.yaxis.set_major_formatter(mticker.PercentFormatter())
-ax1_r.set_ylabel('% Acumulado')
-ax1.grid(False)
-ax1_r.grid(False)
+fig.add_shape(
+    type='line',
+    x0=taxa_media_global * 100, x1=taxa_media_global * 100,
+    y0=0, y1=1, yref='paper',
+    line=dict(color=PALETTE_LINE_CUM, dash='dash', width=1.5),
+    row=1, col=2,
+)
+fig.add_annotation(
+    x=taxa_media_global * 100, y=0.97, yref='paper',
+    text=f'Média: {taxa_media_global:.1%}',
+    showarrow=False,
+    font=dict(size=9, color=PALETTE_LINE_CUM),
+    xanchor='left',
+    row=1, col=2,
+)
 
-# Right: taxa de sinistro horizontal bars (green, sorted by taxa desc)
-y2    = np.arange(n_c)
-bars2 = ax2.barh(y2, df_cultura_taxa['taxa'] * 100, color=cores_g[:n_c], edgecolor='white', linewidth=0.5)
-ax2.bar_label(bars2, fmt='{:.1f}%', padding=4)
-ax2.axvline(taxa_media_global * 100, color='#DC2626', linestyle='--', linewidth=1.5,
-            label=f'Média geral: {taxa_media_global:.1%}')
-ax2.set_yticks(y2)
-ax2.set_yticklabels(df_cultura_taxa['cultura_fmt'], fontsize=8)
-ax2.invert_yaxis()
-ax2.set_xlabel('Taxa de Sinistro (%)')
-ax2.set_title('Taxa de Sinistro por Tipo de Cultura (%)')
-ax2.legend(fontsize=8)
-ax2.grid(False)
-sns.despine(ax=ax2, left=True, bottom=False)
+fig.update_layout(
+    title='Concentração por Tipo de Cultura — PSR (2016–2025)',
+    template=PLOTLY_TEMPLATE,
+    height=560,
+)
+fig.update_yaxes(title_text='Total de Apólices', tickformat=',.0f', row=1, col=1, secondary_y=False)
+fig.update_yaxes(title_text='% Acumulado', ticksuffix='%', range=[0, 115], row=1, col=1, secondary_y=True)
+fig.update_xaxes(title_text='Taxa de Sinistro (%)', ticksuffix='%', tickformat='.1f', row=1, col=2)
+fig.update_xaxes(tickangle=-30, row=1, col=1)
 
-fig.suptitle('Concentração por Tipo de Cultura — PSR (2016–2025)')
-plt.tight_layout()
 save_fig(fig, 'fig_1_3_cultura')
 
 # COMMAND ----------
@@ -386,24 +431,30 @@ taxa_sinistro   = df_silver['sinistro'].mean()
 total           = len(df_silver)
 
 labels_donut = [
-    f'Sem Sinistro\n{sinistro_counts[0]:,.0f}  ({sinistro_counts[0]/total:.1%})',
-    f'Com Sinistro\n{sinistro_counts[1]:,.0f}  ({sinistro_counts[1]/total:.1%})',
+    f'Sem Sinistro<br>{sinistro_counts[0]:,.0f} ({sinistro_counts[0]/total:.1%})',
+    f'Com Sinistro<br>{sinistro_counts[1]:,.0f} ({sinistro_counts[1]/total:.1%})',
 ]
-sizes  = sinistro_counts.values
-colors = [PALETTE_NEG, PALETTE_MAIN]
 
-fig, ax = plt.subplots(figsize=(7, 6))
-wedges, texts = ax.pie(
-    sizes,
+fig = go.Figure(go.Pie(
     labels=labels_donut,
-    colors=colors,
-    startangle=90,
-    wedgeprops=dict(width=0.45, edgecolor='white', linewidth=2),
-    textprops={'fontsize': 10},
+    values=sinistro_counts.values.tolist(),
+    hole=0.5,
+    marker_colors=[PALETTE_NEG, PALETTE_MAIN],
+    textinfo='label',
+    textfont_size=12,
+    hovertemplate='%{label}<extra></extra>',
+))
+fig.add_annotation(
+    text=f'Taxa<br><b>{taxa_sinistro:.1%}</b>',
+    x=0.5, y=0.5,
+    font_size=16, showarrow=False,
+    xanchor='center', yanchor='middle',
 )
-ax.text(0, 0, f'Taxa\n{taxa_sinistro:.1%}', ha='center', va='center',
-        fontsize=14, fontweight='bold', color='#1E293B')
-ax.set_title('Distribuição da Variável Resposta (flSinistro)')
+fig.update_layout(
+    title='Distribuição da Variável Resposta (flSinistro)',
+    template=PLOTLY_TEMPLATE,
+    height=500,
+)
 save_fig(fig, 'fig_1_4_target_distribution')
 
 # COMMAND ----------
@@ -438,21 +489,39 @@ df_comparativo = (
 df_comparativo.index = ['Sem sinistro', 'Com sinistro']
 display(df_comparativo.round(2))
 
-fig, axes = plt.subplots(2, 3, figsize=(14, 8))
-axes_flat = axes.flatten()
+colors_box = {0: PALETTE_NEG, 1: PALETTE_MAIN}
+names_box   = {0: 'Sem sinistro', 1: 'Com sinistro'}
 
-for ax, var in zip(axes_flat, VARS_COMPARATIVO):
-    sns.boxplot(
-        data=df_silver, x='sinistro', y=var,
-        palette=[PALETTE_NEG, PALETTE_MAIN],
-        showfliers=False, ax=ax,
-    )
-    ax.set_xticklabels(['Sem sinistro', 'Com sinistro'])
-    ax.set_xlabel('')
-    ax.set_title(var)
+fig = make_subplots(rows=2, cols=3, subplot_titles=VARS_COMPARATIVO)
+shown = {0: False, 1: False}
 
-fig.suptitle('Distribuição das Variáveis Financeiras por Ocorrência de Sinistro')
-plt.tight_layout()
+for idx, var in enumerate(VARS_COMPARATIVO):
+    r, c = idx // 3 + 1, idx % 3 + 1
+    for lv in [0, 1]:
+        subset = df_silver[df_silver['sinistro'] == lv][var].dropna()
+        q1, med, q3 = subset.quantile([0.25, 0.5, 0.75])
+        iqr = q3 - q1
+        lo  = max(float(subset.min()), q1 - 1.5 * iqr)
+        hi  = min(float(subset.max()), q3 + 1.5 * iqr)
+        fig.add_trace(go.Box(
+            q1=[q1], median=[med], q3=[q3],
+            lowerfence=[lo], upperfence=[hi],
+            mean=[float(subset.mean())],
+            x=[names_box[lv]],
+            name=names_box[lv],
+            marker_color=colors_box[lv],
+            showlegend=(not shown[lv]),
+            legendgroup=names_box[lv],
+        ), row=r, col=c)
+        shown[lv] = True
+
+fig.update_layout(
+    title='Distribuição das Variáveis Financeiras por Ocorrência de Sinistro',
+    template=PLOTLY_TEMPLATE,
+    height=600,
+    legend=dict(orientation='h', y=1.04),
+    boxmode='group',
+)
 save_fig(fig, 'fig_1_6_comparativo_grupos')
 
 # COMMAND ----------
@@ -467,35 +536,44 @@ df_eventos = (
     .reset_index()
 )
 df_eventos = df_eventos[df_eventos['evento'] != 'nenhum']
-df_eventos = df_eventos[df_eventos['pct'] > 0.001]  # remove ~0% entries
+df_eventos = df_eventos[df_eventos['pct'] > 0.001]
 df_eventos['evento_fmt'] = df_eventos['evento'].map(_fmt_evento)
 
-n_evt = len(df_eventos)
-x_evt = np.arange(n_evt)
+n_evt   = len(df_eventos)
 cum_evt = (df_eventos['pct'].cumsum() * 100).values
 
-fig, ax = plt.subplots(figsize=(max(10, n_evt * 1.1), 6))
-ax_r = ax.twinx()
+fig = make_subplots(specs=[[{'secondary_y': True}]])
 
-bars = ax.bar(x_evt, df_eventos['pct'] * 100, color=PALETTE_MAIN, alpha=0.85, edgecolor='white')
+fig.add_trace(go.Bar(
+    x=df_eventos['evento_fmt'], y=df_eventos['pct'] * 100,
+    name='Percentual',
+    marker_color=_viridis(n_evt),
+    text=[f'{v:.1f}%' for v in df_eventos['pct'] * 100],
+    textposition='outside',
+    textfont=dict(size=9),
+    showlegend=False,
+), secondary_y=False)
 
-ax_r.plot(x_evt, cum_evt, color='#DC2626', marker='o', linestyle='--', linewidth=1.5, markersize=5)
-for xi, ci in zip(x_evt, cum_evt):
-    ax_r.text(xi, ci + 1.5, f'{ci:.0f}%', ha='center', va='bottom', fontsize=7.5, color='#DC2626')
+fig.add_trace(go.Scatter(
+    x=df_eventos['evento_fmt'], y=cum_evt,
+    name='% Acumulado',
+    mode='lines+markers+text',
+    line=dict(color=PALETTE_LINE_CUM, dash='dash', width=2),
+    marker=dict(size=6, color=PALETTE_LINE_CUM),
+    text=[f'{v:.0f}%' for v in cum_evt],
+    textposition='top center',
+    textfont=dict(size=8, color=PALETTE_LINE_CUM),
+    showlegend=False,
+), secondary_y=True)
 
-for bar, val in zip(bars, df_eventos['pct'] * 100):
-    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
-            f'{val:.1f}%', ha='center', va='bottom', fontsize=8)
-
-ax.set_xticks(x_evt)
-ax.set_xticklabels(df_eventos['evento_fmt'], rotation=30, ha='right', fontsize=9)
-ax.set_ylabel('Percentual (%)')
-ax.set_title('Eventos Causadores de Sinistro — PSR (2016–2025)')
-ax_r.set_ylim(0, 115)
-ax_r.yaxis.set_major_formatter(mticker.PercentFormatter())
-ax_r.set_ylabel('% Acumulado')
-ax.grid(False)
-ax_r.grid(False)
+fig.update_layout(
+    title='Eventos Causadores de Sinistro — PSR (2016–2025)',
+    template=PLOTLY_TEMPLATE,
+    height=500,
+    xaxis=dict(title='Evento', tickangle=-30),
+    yaxis=dict(title='Percentual (%)', ticksuffix='%', tickformat='.1f'),
+    yaxis2=dict(title='% Acumulado', ticksuffix='%', range=[0, 115]),
+)
 save_fig(fig, 'fig_1_7_eventos')
 
 # COMMAND ----------
@@ -524,7 +602,7 @@ print(f'Cutoff OOT: {params.get("cutoff_oot")}')
 
 # DBTITLE 1,[4.2.1] Tabela de baselines
 MODELS = ['decision_tree', 'random_forest', 'adaboost', 'xgboost']
-METRICS = ['accuracy', 'auc_roc', 'auc_pr', 'ks', 'f1', 'lift_10']
+METRICS_LIST = ['accuracy', 'auc_roc', 'auc_pr', 'ks', 'f1', 'lift_10']
 METRIC_LABELS = {
     'accuracy': 'Acurácia',
     'auc_roc':  'AUC-ROC',
@@ -543,8 +621,7 @@ MODEL_LABELS = {
 rows = []
 for m in MODELS:
     row = {'Modelo': MODEL_LABELS[m]}
-    for met in METRICS:
-        # Try model-specific key first, fall back to generic champion key
+    for met in METRICS_LIST:
         row[f'{METRIC_LABELS[met]} (Treino)'] = metrics.get(
             f'baseline_{m}_{met}_train', metrics.get(f'baseline_{met}_train', np.nan)
         )
@@ -557,24 +634,38 @@ df_baselines = pd.DataFrame(rows).sort_values('AUC-ROC (Teste)', ascending=False
 display(df_baselines.round(4))
 df_baselines.to_csv(os.path.join(FIGURES_DIR, 'tab_2_1_baselines.csv'), index=False)
 
-# Heatmap — métricas de teste
 pivot_test = (
     pd.DataFrame([{
         'Modelo': MODEL_LABELS[m],
         **{METRIC_LABELS[met]: metrics.get(
             f'baseline_{m}_{met}_test', metrics.get(f'baseline_{met}_test', np.nan)
-        ) for met in METRICS},
+        ) for met in METRICS_LIST},
     } for m in MODELS])
     .set_index('Modelo')
     .sort_values('AUC-ROC', ascending=False)
 )
 
-fig, ax = plt.subplots(figsize=(10, 4))
-sns.heatmap(pivot_test, annot=True, fmt='.3f', cmap='Blues', linewidths=0.5,
-            cbar_kws={'shrink': 0.8}, ax=ax)
-ax.set_title('Desempenho dos Modelos Baseline — Conjunto de Teste')
-ax.set_ylabel('')
-plt.tight_layout()
+z_vals   = pivot_test.values.tolist()
+x_labels = pivot_test.columns.tolist()
+y_labels = pivot_test.index.tolist()
+
+fig = go.Figure(go.Heatmap(
+    z=z_vals,
+    x=x_labels,
+    y=y_labels,
+    colorscale='Viridis',
+    text=[[f'{v:.3f}' for v in row] for row in z_vals],
+    texttemplate='%{text}',
+    textfont=dict(size=12),
+    showscale=True,
+    colorbar=dict(title='Valor'),
+))
+fig.update_layout(
+    title='Desempenho dos Modelos Baseline — Conjunto de Teste',
+    template=PLOTLY_TEMPLATE,
+    height=360,
+    yaxis=dict(autorange='reversed'),
+)
 save_fig(fig, 'fig_2_1_baselines_heatmap')
 
 # COMMAND ----------
@@ -583,13 +674,13 @@ save_fig(fig, 'fig_2_1_baselines_heatmap')
 champion = params.get('champion_baseline', 'xgboost')
 
 df_comparison = pd.DataFrame({
-    'Métrica':           [METRIC_LABELS[m] for m in METRICS],
+    'Métrica':           [METRIC_LABELS[m] for m in METRICS_LIST],
     'Baseline (Treino)': [metrics.get(f'baseline_{champion}_{m}_train',
-                           metrics.get(f'baseline_{m}_train', np.nan)) for m in METRICS],
+                           metrics.get(f'baseline_{m}_train', np.nan)) for m in METRICS_LIST],
     'Baseline (Teste)':  [metrics.get(f'baseline_{champion}_{m}_test',
-                           metrics.get(f'baseline_{m}_test',  np.nan)) for m in METRICS],
-    'Ajustado (Treino)': [metrics.get(f'{m}_train', np.nan) for m in METRICS],
-    'Ajustado (Teste)':  [metrics.get(f'{m}_test',  np.nan) for m in METRICS],
+                           metrics.get(f'baseline_{m}_test',  np.nan)) for m in METRICS_LIST],
+    'Ajustado (Treino)': [metrics.get(f'{m}_train', np.nan) for m in METRICS_LIST],
+    'Ajustado (Teste)':  [metrics.get(f'{m}_test',  np.nan) for m in METRICS_LIST],
 })
 display(df_comparison.round(4))
 df_comparison.to_csv(os.path.join(FIGURES_DIR, 'tab_2_2_baseline_vs_tuned.csv'), index=False)
@@ -601,18 +692,30 @@ baseline_vals = [metrics.get(f'baseline_{champion}_{m}_test',
                   metrics.get(f'baseline_{m}_test', np.nan)) for m in METRICS_PLOT]
 tuned_vals    = [metrics.get(f'{m}_test', np.nan) for m in METRICS_PLOT]
 
-x_pos = np.arange(len(METRICS_PLOT))
-width = 0.35
-
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.bar(x_pos - width / 2, baseline_vals, width, label='Baseline',                color='#93C5FD')
-ax.bar(x_pos + width / 2, tuned_vals,    width, label='Ajustado (GridSearchCV)',  color=PALETTE_MAIN)
-
-ax.set_xticks(x_pos)
-ax.set_xticklabels(labels_plot)
-ax.set_ylabel('Valor')
-ax.set_title(f'Comparativo Baseline vs. Modelo Ajustado — {MODEL_LABELS[champion]}')
-ax.legend()
+vc = _viridis(2)
+fig = go.Figure()
+fig.add_trace(go.Bar(
+    x=labels_plot, y=baseline_vals,
+    name='Baseline',
+    marker_color=vc[0],
+    text=[f'{v:.3f}' if not np.isnan(v) else 'N/D' for v in baseline_vals],
+    textposition='outside', textfont=dict(size=10),
+))
+fig.add_trace(go.Bar(
+    x=labels_plot, y=tuned_vals,
+    name='Ajustado (GridSearchCV)',
+    marker_color=vc[1],
+    text=[f'{v:.3f}' if not np.isnan(v) else 'N/D' for v in tuned_vals],
+    textposition='outside', textfont=dict(size=10),
+))
+fig.update_layout(
+    title=f'Comparativo Baseline vs. Modelo Ajustado — {MODEL_LABELS[champion]}',
+    template=PLOTLY_TEMPLATE,
+    barmode='group',
+    legend=dict(orientation='h', y=1.05),
+    yaxis=dict(title='Valor', tickformat='.3f'),
+    height=480,
+)
 save_fig(fig, 'fig_2_2_comparison_bar')
 
 # COMMAND ----------
@@ -629,11 +732,9 @@ display(df_hyperparams)
 # COMMAND ----------
 
 # DBTITLE 1,[0] Carga do modelo campeão e conjunto de predições
-# — Conjunto OOT: escores apenas (apólices 2025+ ainda não maturadas — sinistro indisponível) —
 df_predicoes = spark.table(TABLE_PREDICOES).toPandas()
 df_predicoes['dtRef'] = pd.to_datetime(df_predicoes['dtRef'])
 
-# Tabela em formato long — filtrar label=1 para obter prob(sinistro=1) por apólice
 df_oot = (
     df_predicoes[
         (df_predicoes['label'] == 1) &
@@ -648,7 +749,6 @@ assert len(df_oot) > 0, 'df_oot vazio — verificar TABLE_PREDICOES e período O
 
 print(f'OOT: {len(df_oot):,} apólices (sem rótulos — ciclo não encerrado em 2025)')
 
-# — Conjunto de Teste in-sample: recriar split idêntico ao train.py —
 _sql_path = os.path.join('../model_sinistro/', 'fl_sinistro.sql')
 _anchor_sql = open(_sql_path).read()
 df_anchor_train = spark.sql(_anchor_sql)
@@ -692,17 +792,26 @@ print(f'Teste (in-sample): {len(X_test):,} | OOT (escores): {len(df_oot):,}')
 fpr_test, tpr_test, _ = roc_curve(y_test, y_prob_test)
 auc_test = roc_auc_score(y_test, y_prob_test)
 
-fig, ax = plt.subplots(figsize=(7, 6))
-ax.plot(fpr_test, tpr_test, color=PALETTE_MAIN, lw=2, label=f'Teste (AUC = {auc_test:.3f})')
-ax.plot([0, 1], [0, 1], color='#94A3B8', lw=1, linestyle=':')
-
-ax.set_xlabel('Taxa de Falsos Positivos')
-ax.set_ylabel('Taxa de Verdadeiros Positivos (Sensibilidade)')
-ax.set_title('Curva ROC — Conjunto de Teste')
-ax.legend(loc='lower right')
-ax.annotate(
-    'Regressão logística simples\n(Garcia, 2023): AUC = 0,56',
-    xy=(0.65, 0.4), fontsize=8, color='#64748B', style='italic',
+fig = go.Figure()
+fig.add_trace(go.Scatter(
+    x=fpr_test, y=tpr_test,
+    mode='lines',
+    name=f'Teste (AUC = {auc_test:.3f})',
+    line=dict(color=PALETTE_MAIN, width=2.5),
+))
+fig.add_trace(go.Scatter(
+    x=[0, 1], y=[0, 1],
+    mode='lines',
+    name='Aleatório',
+    line=dict(color='#94A3B8', width=1, dash='dot'),
+))
+fig.update_layout(
+    title='Curva ROC — Conjunto de Teste',
+    template=PLOTLY_TEMPLATE,
+    xaxis=dict(title='Taxa de Falsos Positivos', tickformat='.1%'),
+    yaxis=dict(title='Taxa de Verdadeiros Positivos (Sensibilidade)', tickformat='.1%'),
+    legend=dict(x=0.6, y=0.1),
+    height=520,
 )
 save_fig(fig, 'fig_3_1_roc_curves')
 
@@ -711,56 +820,88 @@ save_fig(fig, 'fig_3_1_roc_curves')
 # DBTITLE 1,[4.3.2] Curva Precision-Recall — Conjunto de Teste
 prec_test, rec_test, _ = precision_recall_curve(y_test, y_prob_test)
 ap_test = average_precision_score(y_test, y_prob_test)
-
 taxa_sinistro_global = df_silver['sinistro'].mean()
 
-fig, ax = plt.subplots(figsize=(7, 6))
-ax.plot(rec_test, prec_test, color=PALETTE_MAIN, lw=2, label=f'Teste (AP = {ap_test:.3f})')
-ax.axhline(taxa_sinistro_global, color='#94A3B8', lw=1.5, linestyle=':',
-           label=f'Baseline aleatório: {taxa_sinistro_global:.1%}')
-ax.annotate(
-    f'Baseline aleatório: {taxa_sinistro_global:.1%}',
-    xy=(0.7, taxa_sinistro_global + 0.01), fontsize=8, color='#64748B',
+fig = go.Figure()
+fig.add_trace(go.Scatter(
+    x=rec_test, y=prec_test,
+    mode='lines',
+    name=f'Teste (AP = {ap_test:.3f})',
+    line=dict(color=PALETTE_MAIN, width=2.5),
+))
+fig.add_hline(
+    y=taxa_sinistro_global,
+    line_dash='dot', line_color='#94A3B8', line_width=1.5,
+    annotation_text=f'Baseline aleatório: {taxa_sinistro_global:.1%}',
+    annotation_position='top right',
 )
-
-ax.set_xlabel('Recall')
-ax.set_ylabel('Precisão')
-ax.set_title('Curva Precision-Recall — Conjunto de Teste')
-ax.legend(loc='upper right')
+fig.update_layout(
+    title='Curva Precision-Recall — Conjunto de Teste',
+    template=PLOTLY_TEMPLATE,
+    xaxis=dict(title='Recall', tickformat='.1%'),
+    yaxis=dict(title='Precisão', tickformat='.1%'),
+    legend=dict(x=0.55, y=0.9),
+    height=520,
+)
 save_fig(fig, 'fig_3_2_pr_curves')
 
 # COMMAND ----------
 
 # DBTITLE 1,[4.3.3] Distribuição de probabilidades preditas por classe
-# Painel esquerdo: teste (com separação por classe) | Painel direito: OOT (monitoramento — sem rótulos)
-fig, (ax_test, ax_oot) = plt.subplots(1, 2, figsize=(13, 5))
-
 scores_test  = y_prob_test
 labels_test  = y_test.values
 ks_stat_test = ks_2samp(scores_test[labels_test == 1], scores_test[labels_test == 0]).statistic
+scores_oot   = df_oot[SCORE_COL].values
 
-ax_test.hist(scores_test[labels_test == 0], bins=50, alpha=0.65, color=PALETTE_NEG,
-             label='Sem sinistro', density=True)
-ax_test.hist(scores_test[labels_test == 1], bins=50, alpha=0.65, color=PALETTE_MAIN,
-             label='Com sinistro', density=True)
-ax_test.set_title(f'Conjunto de Teste (KS = {ks_stat_test:.3f})')
-ax_test.set_xlabel('Probabilidade Predita de Sinistro')
-ax_test.set_ylabel('Densidade')
-ax_test.legend()
+fig = make_subplots(
+    rows=1, cols=2,
+    subplot_titles=[
+        f'Conjunto de Teste (KS = {ks_stat_test:.3f})',
+        f'Período OOT — Monitoramento (n={len(scores_oot):,})',
+    ],
+)
 
-scores_oot = df_oot[SCORE_COL].values
-ax_oot.hist(scores_oot, bins=50, alpha=0.8, color=PALETTE_MAIN, density=True)
-ax_oot.axvline(scores_oot.mean(), color='#DC2626', linestyle='--', linewidth=1.5,
-               label=f'Média: {scores_oot.mean():.3f}')
-ax_oot.set_title(f'Período OOT — Monitoramento de Escores (n={len(scores_oot):,})')
-ax_oot.set_xlabel('Probabilidade Predita de Sinistro')
-ax_oot.set_ylabel('Densidade')
-ax_oot.legend()
-ax_oot.text(0.98, 0.95, 'Rótulos indisponíveis\n(ciclo não encerrado)',
-            transform=ax_oot.transAxes, ha='right', va='top',
-            fontsize=8, color='#64748B', style='italic')
+fig.add_trace(go.Histogram(
+    x=scores_test[labels_test == 0], name='Sem sinistro',
+    marker_color=PALETTE_NEG, opacity=0.65,
+    nbinsx=50, histnorm='probability density',
+), row=1, col=1)
+fig.add_trace(go.Histogram(
+    x=scores_test[labels_test == 1], name='Com sinistro',
+    marker_color=PALETTE_MAIN, opacity=0.65,
+    nbinsx=50, histnorm='probability density',
+), row=1, col=1)
 
-fig.suptitle('Distribuição dos Escores Preditos', fontsize=13)
+fig.add_trace(go.Histogram(
+    x=scores_oot, name='OOT',
+    marker_color=PALETTE_MAIN, opacity=0.8,
+    nbinsx=50, histnorm='probability density',
+), row=1, col=2)
+fig.add_shape(
+    type='line',
+    x0=scores_oot.mean(), x1=scores_oot.mean(),
+    y0=0, y1=1, yref='paper',
+    line=dict(color=PALETTE_LINE_CUM, dash='dash', width=1.5),
+    row=1, col=2,
+)
+fig.add_annotation(
+    x=scores_oot.mean(), y=0.95, yref='paper',
+    text=f'Média: {scores_oot.mean():.3f}',
+    showarrow=False,
+    font=dict(size=9, color=PALETTE_LINE_CUM),
+    xanchor='left',
+    row=1, col=2,
+)
+
+fig.update_layout(
+    title='Distribuição dos Escores Preditos',
+    template=PLOTLY_TEMPLATE,
+    barmode='overlay',
+    legend=dict(orientation='h', y=1.05),
+    height=480,
+)
+fig.update_xaxes(title_text='Probabilidade Predita de Sinistro', tickformat='.2f')
+fig.update_yaxes(title_text='Densidade')
 save_fig(fig, 'fig_3_3_score_distribution')
 
 # COMMAND ----------
@@ -860,12 +1001,12 @@ df_fi.to_csv(os.path.join(FIGURES_DIR, 'tab_4_fi_full.csv'), index=False)
 # COMMAND ----------
 
 # DBTITLE 1,[4.4.1] Tabela Top-15 Feature Importance
-df_top15 = df_fi.head(15)[['feature', 'importance_pct', 'grupo']].copy()
-df_top15.columns = ['Feature', 'Importância (%)', 'Grupo']
-df_top15['Importância (%)'] = (df_top15['Importância (%)'] * 100).round(2)
-df_top15.index = range(1, 16)
-display(df_top15)
-df_top15.to_csv(os.path.join(FIGURES_DIR, 'tab_4_1_top15_fi.csv'))
+df_top15_tbl = df_fi.head(15)[['feature', 'importance_pct', 'grupo']].copy()
+df_top15_tbl.columns = ['Feature', 'Importância (%)', 'Grupo']
+df_top15_tbl['Importância (%)'] = (df_top15_tbl['Importância (%)'] * 100).round(2)
+df_top15_tbl.index = range(1, 16)
+display(df_top15_tbl)
+df_top15_tbl.to_csv(os.path.join(FIGURES_DIR, 'tab_4_1_top15_fi.csv'))
 print('✓ tab_4_1_top15_fi.csv salvo')
 
 # COMMAND ----------
@@ -883,45 +1024,57 @@ GROUP_COLORS = {
     'Outros':                   '#CBD5E1',
 }
 
-df_top20 = df_fi.head(20).copy()
-df_top20['feature_fmt'] = df_top20['feature'].map(_fmt_fi_name)
-colors_fi = df_top20['grupo'].map(GROUP_COLORS).fillna('#CBD5E1')
+# Top 15; cumulative % computed against ALL features
+df_top15_fi = df_fi.head(15).copy()
+df_top15_fi['feature_fmt'] = df_top15_fi['feature'].map(_fmt_fi_name)
+cum_fi     = (df_top15_fi['importance_pct'].cumsum() * 100).values
+bar_colors = df_top15_fi['grupo'].map(GROUP_COLORS).fillna('#CBD5E1').tolist()
 
-x_fi  = np.arange(len(df_top20))
-cum_fi = (df_top20['importance_pct'].cumsum() / df_top20['importance_pct'].sum() * 100).values
+fig = make_subplots(specs=[[{'secondary_y': True}]])
 
-fig, ax = plt.subplots(figsize=(14, 6))
-ax_r = ax.twinx()
+fig.add_trace(go.Bar(
+    x=df_top15_fi['feature_fmt'], y=df_top15_fi['importance_pct'] * 100,
+    name='Importância',
+    marker_color=bar_colors,
+    text=[f'{v:.1f}%' for v in df_top15_fi['importance_pct'] * 100],
+    textposition='outside',
+    textfont=dict(size=9),
+    showlegend=False,
+), secondary_y=False)
 
-bars_fi = ax.bar(x_fi, df_top20['importance_pct'] * 100, color=colors_fi,
-                 edgecolor='white', linewidth=0.5)
+# Cumulative line in PALETTE_ACCENT (yellow) — distinct from bars
+fig.add_trace(go.Scatter(
+    x=df_top15_fi['feature_fmt'], y=cum_fi,
+    name='% Acumulado (todas)',
+    mode='lines+markers+text',
+    line=dict(color=PALETTE_ACCENT, dash='dash', width=2.5),
+    marker=dict(size=7, color=PALETTE_ACCENT, line=dict(color='#888', width=1)),
+    text=[f'{v:.0f}%' for v in cum_fi],
+    textposition='top center',
+    textfont=dict(size=8, color='#888'),
+), secondary_y=True)
 
-ax_r.plot(x_fi, cum_fi, color='#DC2626', marker='o', linestyle='--', linewidth=1.5, markersize=5)
-for xi, ci in zip(x_fi, cum_fi):
-    ax_r.text(xi, ci + 1.5, f'{ci:.0f}%', ha='center', va='bottom', fontsize=7, color='#DC2626')
+# Invisible traces just to populate the group legend
+shown_groups = set(df_top15_fi['grupo'].unique())
+for grp, col in GROUP_COLORS.items():
+    if grp in shown_groups:
+        fig.add_trace(go.Bar(
+            x=[None], y=[None],
+            name=grp,
+            marker_color=col,
+            showlegend=True,
+        ), secondary_y=False)
 
-for bar, val in zip(bars_fi, df_top20['importance_pct'] * 100):
-    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.15,
-            f'{val:.1f}%', ha='center', va='bottom', fontsize=7.5)
-
-ax.set_xticks(x_fi)
-ax.set_xticklabels(df_top20['feature_fmt'], rotation=40, ha='right', fontsize=8)
-ax.set_ylabel('Importância Relativa (%)')
-ax.set_title('Top-20 Variáveis por Importância — Modelo Campeão')
-ax_r.set_ylim(0, 115)
-ax_r.yaxis.set_major_formatter(mticker.PercentFormatter())
-ax_r.set_ylabel('% Acumulado')
-ax.grid(False)
-ax_r.grid(False)
-
-legend_handles = [
-    Patch(color=v, label=k)
-    for k, v in GROUP_COLORS.items()
-    if k in df_top20['grupo'].values
-]
-ax.legend(handles=legend_handles, loc='upper right', fontsize=8, title='Grupo')
-
-plt.tight_layout()
+fig.update_layout(
+    title='Top-15 Variáveis por Importância — Modelo Campeão',
+    template=PLOTLY_TEMPLATE,
+    height=580,
+    legend=dict(title='Grupo', orientation='v', x=1.08, y=0.95),
+    yaxis=dict(title='Importância Relativa (%)', ticksuffix='%', tickformat='.1f'),
+    yaxis2=dict(title='% Acumulado (todas variáveis)', ticksuffix='%', range=[0, 115]),
+    xaxis=dict(tickangle=-35),
+    bargap=0.25,
+)
 save_fig(fig, 'fig_4_2_feature_importance')
 
 # COMMAND ----------
@@ -937,24 +1090,22 @@ df_group_imp = (
 df_group_imp.columns = ['Grupo', 'Importância Agregada (%)']
 df_group_imp['Importância Agregada (%)'] = (df_group_imp['Importância Agregada (%)'] * 100).round(2)
 
-fig, ax = plt.subplots(figsize=(9, 5))
-ax.barh(
-    df_group_imp['Grupo'],
-    df_group_imp['Importância Agregada (%)'],
-    color=[GROUP_COLORS.get(g, '#CBD5E1') for g in df_group_imp['Grupo']],
+fig = go.Figure(go.Bar(
+    x=df_group_imp['Importância Agregada (%)'],
+    y=df_group_imp['Grupo'],
+    orientation='h',
+    marker_color=[GROUP_COLORS.get(g, '#CBD5E1') for g in df_group_imp['Grupo']],
+    text=[f"{v:.1f}%" for v in df_group_imp['Importância Agregada (%)']],
+    textposition='outside',
+    textfont=dict(size=10),
+))
+fig.update_layout(
+    title='Importância por Grupo de Features',
+    template=PLOTLY_TEMPLATE,
+    height=450,
+    xaxis=dict(title='Importância Agregada (%)', ticksuffix='%', tickformat='.1f'),
+    yaxis=dict(autorange='reversed'),
 )
-ax.invert_yaxis()
-ax.xaxis.set_major_formatter(mticker.PercentFormatter())
-ax.set_xlabel('Importância Agregada (%)')
-ax.set_title('Importância por Grupo de Features')
-
-for i, (_, row) in enumerate(df_group_imp.iterrows()):
-    ax.text(
-        row['Importância Agregada (%)'] + 0.2, i,
-        f"{row['Importância Agregada (%)']:.1f}%",
-        va='center', fontsize=9,
-    )
-
 save_fig(fig, 'fig_4_3_importance_by_group')
 display(df_group_imp)
 
