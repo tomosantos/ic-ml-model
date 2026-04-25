@@ -1,6 +1,6 @@
 # Databricks notebook source
-# MAGIC %pip install -q matplotlib seaborn scikit-learn xgboost mlflow databricks-feature-engineering plotly kaleido
-# MAGIC %restart_python
+# MAGIC %pip install -q matplotlib seaborn scikit-learn xgboost mlflow databricks-feature-engineering plotly "kaleido==0.2.1"
+dbutils.library.restartPython()
 
 # COMMAND ----------
 
@@ -103,6 +103,9 @@ def save_fig(fig, name: str):
     if os.path.exists(path):
         os.remove(path)
     if hasattr(fig, 'write_image'):  # plotly
+        fig.update_layout(paper_bgcolor='white', plot_bgcolor='white')
+        fig.update_xaxes(showgrid=False)
+        fig.update_yaxes(showgrid=False)
         fig.write_image(path, width=1400, height=fig.layout.height or 600, scale=2)
         try:
             mlflow.log_artifact(path, artifact_path='figures')
