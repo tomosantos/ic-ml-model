@@ -63,9 +63,6 @@ def _viridis(n: int) -> list:
     return [plt.cm.viridis(i / max(n - 1, 1)) for i in range(n)]
 
 
-def _greens(n: int) -> list:
-    return [plt.cm.Greens(0.3 + 0.6 * i / max(n - 1, 1)) for i in range(n)]
-
 
 sns.set_theme(style='white', font='DejaVu Sans')
 matplotlib.rcParams.update({
@@ -299,7 +296,8 @@ ax_l.set_title('Total de Apólices por Região', pad=10)
 
 n_rt = len(df_regiao_taxa)
 y_r = np.arange(n_rt)
-bars_r = ax_r.barh(y_r, df_regiao_taxa['taxa'] * 100, color=_greens(n_rt),
+bars_r = ax_r.barh(y_r, df_regiao_taxa['taxa'] * 100,
+                   color=[plt.cm.Greens(0.9 - 0.6 * i / max(n_rt - 1, 1)) for i in range(n_rt)],
                    height=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_r, df_regiao_taxa['taxa'] * 100):
     ax_r.text(val + 0.1, bar.get_y() + bar.get_height() / 2,
@@ -342,7 +340,7 @@ taxa_media_global = df_silver['sinistro'].mean()
 n_c = len(df_cultura)
 cum_cult = (df_cultura['total'].cumsum() / df_cultura['total'].sum() * 100).values
 
-fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(16, 6))
+fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(16, max(7, n_c * 0.38)))
 
 ax_l2 = ax_l.twinx()
 x_c = np.arange(n_c)
@@ -370,7 +368,8 @@ ax_l.set_title('Total de Apólices por Tipo de Cultura', pad=10)
 
 n_ct = len(df_cultura_taxa)
 y_ct = np.arange(n_ct)
-bars_cr = ax_r.barh(y_ct, df_cultura_taxa['taxa'] * 100, color=_greens(n_ct),
+bars_cr = ax_r.barh(y_ct, df_cultura_taxa['taxa'] * 100,
+                    color=[plt.cm.Greens(0.9 - 0.6 * i / max(n_ct - 1, 1)) for i in range(n_ct)],
                     height=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_cr, df_cultura_taxa['taxa'] * 100):
     ax_r.text(val + 0.1, bar.get_y() + bar.get_height() / 2,
@@ -398,12 +397,12 @@ sinistro_counts = df_silver['sinistro'].value_counts().sort_index()
 taxa_sinistro   = df_silver['sinistro'].mean()
 total           = len(df_silver)
 
-labels_pie = [
-    f'Sem Sinistro\n{sinistro_counts[0]:,.0f} ({sinistro_counts[0]/total:.1%})',
-    f'Com Sinistro\n{sinistro_counts[1]:,.0f} ({sinistro_counts[1]/total:.1%})',
+labels_ann = [
+    f'Sem Sinistro\n{sinistro_counts[0]/total:.1%}',
+    f'Com Sinistro\n{sinistro_counts[1]/total:.1%}',
 ]
 
-fig, ax = plt.subplots(figsize=(7, 6))
+fig, ax = plt.subplots(figsize=(8, 6))
 wedges, _ = ax.pie(
     sinistro_counts.values,
     labels=None,
@@ -413,8 +412,22 @@ wedges, _ = ax.pie(
 )
 ax.text(0, 0, f'Taxa\n{taxa_sinistro:.1%}', ha='center', va='center',
         fontsize=16, fontweight='bold', color='#1E293B')
-ax.legend(wedges, labels_pie, loc='lower center', ncol=2,
-          bbox_to_anchor=(0.5, -0.08), fontsize=10, framealpha=0.9)
+
+for wedge, label in zip(wedges, labels_ann):
+    ang = np.deg2rad((wedge.theta2 + wedge.theta1) / 2)
+    x, y = np.cos(ang), np.sin(ang)
+    ha = 'right' if x < 0 else 'left'
+    ax.annotate(
+        label,
+        xy=(0.75 * x, 0.75 * y),
+        xytext=(1.7 * x, 1.7 * y),
+        ha=ha, va='center', fontsize=11, fontweight='bold',
+        arrowprops=dict(arrowstyle='-', color='#555555', lw=1.2),
+        bbox=dict(boxstyle='round,pad=0.4', fc='white', ec='#CBD5E1', lw=1),
+    )
+
+ax.set_xlim(-2.5, 2.5)
+ax.set_ylim(-2, 2)
 ax.set_title('Distribuição da Variável Resposta (flSinistro)', pad=15)
 plt.tight_layout()
 save_fig(fig, 'fig_1_4_target_distribution')
@@ -451,19 +464,21 @@ df_comparativo = (
 df_comparativo.index = ['Sem sinistro', 'Com sinistro']
 display(df_comparativo.round(2))
 
-palette_box = {0: PALETTE_NEG, 1: PALETTE_MAIN}
+palette_box = ['Sem sinistro', 'Com sinistro']
+color_box   = [PALETTE_NEG, PALETTE_MAIN]
 
 fig, axes = plt.subplots(2, 3, figsize=(14, 8))
 for idx, var in enumerate(VARS_COMPARATIVO):
     ax = axes.flat[idx]
-    subset = df_silver[[var, 'sinistro']].dropna()
+    subset = df_silver[[var, 'sinistro']].dropna().copy()
+    subset['grupo'] = subset['sinistro'].map({0: 'Sem sinistro', 1: 'Com sinistro'})
     sns.boxplot(
-        data=subset, x='sinistro', y=var,
-        palette=palette_box, width=0.5,
-        flierprops=dict(marker='.', markersize=2, alpha=0.3),
+        data=subset, x='grupo', y=var,
+        order=palette_box,
+        palette=dict(zip(palette_box, color_box)),
+        width=0.5, linewidth=1.2, fliersize=2,
         ax=ax,
     )
-    ax.set_xticklabels(['Sem sinistro', 'Com sinistro'])
     ax.set_xlabel('')
     ax.set_title(var)
     sns.despine(ax=ax)
