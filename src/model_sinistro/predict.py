@@ -32,7 +32,7 @@ mlflow.set_registry_uri('databricks-uc')
 
 # DBTITLE 1,Parâmetros
 CUTOFF_OOT = pd.Timestamp('2025-01-01')
-model_version = '9'
+model_version = '10'
 
 if not isinstance(CUTOFF_OOT, pd.Timestamp):
     raise ValueError('CUTOFF_OOT deve ser pandas.Timestamp')

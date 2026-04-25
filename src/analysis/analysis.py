@@ -95,7 +95,7 @@ LABEL_COL     = 'flSinistro'
 SCORE_COL     = 'score'
 MODEL_NAME    = '04_feature_store.seg_rural.sinistro'
 EXPERIMENT_ID = 2081689002426673
-MLF_RUN_NAME  = None
+MLF_RUN_NAME  = '4c530133b755446e9466e3fdee71b5b8'
 
 
 def save_fig(fig, name: str):
@@ -197,8 +197,8 @@ def _fmt_cultura(name: str) -> str:
 
 # DBTITLE 1,[0] Carga da Silver Layer
 df_silver = spark.table(TABLE_SILVER_CLEANED).toPandas()
-df_silver['dt_inicio_vigencia'] = pd.to_datetime(df_silver['dt_inicio_vigencia'])
-df_silver['dt_fim_vigencia']    = pd.to_datetime(df_silver['dt_fim_vigencia'])
+df_silver['dt_inicio_vigencia'] = pd.to_datetime(df_silver['dt_inicio_vigencia'], errors='coerce')
+df_silver['dt_fim_vigencia']    = pd.to_datetime(df_silver['dt_fim_vigencia'], errors='coerce')
 df_silver = df_silver[df_silver['dt_fim_vigencia'] < pd.Timestamp.today()].copy()
 df_silver['ano']    = df_silver['dt_inicio_vigencia'].dt.year
 df_silver['regiao'] = df_silver['uf'].map(REGIAO_MAP)
