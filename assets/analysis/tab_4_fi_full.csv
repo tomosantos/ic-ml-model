@@ -1,0 +1,56 @@
+feature,importance,grupo,importance_pct
+num__nrAnoPlantio,0.35997087,Temporal / Safra,0.3599709
+num__nrConcentracaoSeguradora365d,0.04464511,Risco por Seguradora,0.044645112
+num__nrSinistrosCulturaUf730d,0.03580789,Risco por Cultura/UF,0.035807893
+cat__tipo_cultura,0.034521256,Outros,0.03452126
+num__nrTaxaMediaCulturaUf365d,0.03068374,Risco por Cultura/UF,0.030683741
+num__nrTaxaSinistroCulturaUf730d,0.028205732,Risco por Cultura/UF,0.028205734
+cat__seguradora,0.02562497,Outros,0.025624972
+num__nrTaxaSinistroCulturaUf365d,0.023846414,Risco por Cultura/UF,0.023846416
+num__nrApolicesCulturaUf730d,0.02372877,Risco por Cultura/UF,0.023728771
+num__nrStdTaxaCulturaUf365d,0.022921527,Risco por Cultura/UF,0.022921529
+num__nrApolicesCulturaExata365d,0.020970395,Risco por Cultura/UF,0.020970397
+cat__regiao,0.020101836,Outros,0.020101838
+num__nrTaxaApolice,0.015999852,Anomalia de Precificação,0.015999854
+cat__nrEventosDominante365d,0.015397438,Histórico por Município,0.015397439
+num__nrApolicesSegCultura365d,0.014640667,Risco por Seguradora,0.0146406675
+num__nrRazaoCoberturaProd,0.014378615,Financeiras da Apólice,0.014378616
+num__nrNivelCobMedioCulturaUf365d,0.014174816,Risco por Cultura/UF,0.014174817
+num__nrSeveridadeSegCultura365d,0.014084975,Risco por Seguradora,0.014084976
+num__nrSinistrosCulturaUf365d,0.012866325,Risco por Cultura/UF,0.012866326
+num__nrTaxaSinistroSegCultura365d,0.0125586735,Risco por Seguradora,0.012558674
+num__nrHHI_seguradora_mun,0.012318145,Risco por Seguradora,0.0123181455
+num__nrTaxaSinistroMun1095d,0.012255031,Histórico por Município,0.012255032
+remainder__nrCosMes,0.011567193,Outros,0.011567194
+num__nrNivelCobertura,0.010881678,Financeiras da Apólice,0.010881679
+num__nrApolicesCulturaUf365d,0.01067369,Risco por Cultura/UF,0.010673691
+num__nrSeveridadeCulturaUf365d,0.010168323,Risco por Cultura/UF,0.010168324
+num__nrTrimestre,0.008752717,Outros,0.008752718
+num__nrDuracaoDias,0.008189339,Outros,0.00818934
+num__nrSeveridadeCulturaUf730d,0.007919403,Risco por Cultura/UF,0.007919404
+remainder__nrSinMes,0.007860638,Outros,0.007860639
+num__nrPremioPorHa,0.007609003,Financeiras da Apólice,0.0076090037
+num__nrIndiceSeveridadeMun1095d,0.0063832114,Histórico por Município,0.006383212
+num__nrApolicesMun1095d,0.006166038,Histórico por Município,0.0061660386
+num__nrTaxaSinistroMun730d,0.00606402,Histórico por Município,0.0060640206
+num__nrRazaoSubvencaoPremio,0.00571422,Financeiras da Apólice,0.0057142205
+num__nrSinistrosMun1095d,0.0055069756,Histórico por Município,0.005506976
+num__nrTaxaSinistroMun365d,0.005492735,Histórico por Município,0.0054927357
+num__nrDensidadeValorSegHa,0.0054563694,Outros,0.00545637
+num__nrSinistrosMun730d,0.0053406134,Histórico por Município,0.005340614
+num__nrAnomaliaTaxa,0.0052205417,Anomalia de Precificação,0.005220542
+num__nrApolicesMun365d,0.0049556103,Histórico por Município,0.0049556107
+num__nrIndiceSeveridadeMun365d,0.0049359915,Histórico por Município,0.004935992
+num__nrSinistrosMun365d,0.0047985064,Histórico por Município,0.004798507
+num__nrIndiceSeveridadeMun730d,0.004725693,Histórico por Município,0.0047256933
+num__nrApolicesMun730d,0.0046137907,Histórico por Município,0.004613791
+num__nrApolicesMun90d,0.0043606027,Histórico por Município,0.004360603
+num__nrIndiceSeveridadeMun90d,0.0042294213,Histórico por Município,0.0042294217
+num__nrSinistrosMun90d,0.004157788,Histórico por Município,0.0041577886
+num__nrTaxaSinistroMun90d,0.004043292,Histórico por Município,0.0040432923
+num__nrApolicesAbertas90d,0.0038752044,Outros,0.0038752046
+num__nrPctCarteiraSegMun365d,0.0037889734,Histórico por Município,0.0037889737
+num__flSafraVerao,0.0035349373,Temporal / Safra,0.0035349375
+num__nrApolicesAbertas30d,0.003310528,Outros,0.0033105281
+num__nrAreaPorAnimal,0.0,Financeiras da Apólice,0.0
+num__nrDuracaoRelativa,0.0,Outros,0.0
