@@ -1,0 +1,16 @@
+,Feature,Importância (%),Grupo
+1,num__nrAnoPlantio,36.0,Temporal / Safra
+2,num__nrConcentracaoSeguradora365d,4.46,Risco por Seguradora
+3,num__nrSinistrosCulturaUf730d,3.58,Risco por Cultura/UF
+4,cat__tipo_cultura,3.45,Outros
+5,num__nrTaxaMediaCulturaUf365d,3.07,Risco por Cultura/UF
+6,num__nrTaxaSinistroCulturaUf730d,2.82,Risco por Cultura/UF
+7,cat__seguradora,2.56,Outros
+8,num__nrTaxaSinistroCulturaUf365d,2.38,Risco por Cultura/UF
+9,num__nrApolicesCulturaUf730d,2.37,Risco por Cultura/UF
+10,num__nrStdTaxaCulturaUf365d,2.29,Risco por Cultura/UF
+11,num__nrApolicesCulturaExata365d,2.1,Risco por Cultura/UF
+12,cat__regiao,2.01,Outros
+13,num__nrTaxaApolice,1.6,Anomalia de Precificação
+14,cat__nrEventosDominante365d,1.54,Histórico por Município
+15,num__nrApolicesSegCultura365d,1.46,Risco por Seguradora
