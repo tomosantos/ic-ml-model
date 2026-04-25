@@ -397,12 +397,12 @@ sinistro_counts = df_silver['sinistro'].value_counts().sort_index()
 taxa_sinistro   = df_silver['sinistro'].mean()
 total           = len(df_silver)
 
-labels_ann = [
-    f'Sem Sinistro\n{sinistro_counts[0]/total:.1%}',
-    f'Com Sinistro\n{sinistro_counts[1]/total:.1%}',
+labels_pie = [
+    f'Sem Sinistro\n{sinistro_counts[0]:,.0f} ({sinistro_counts[0]/total:.1%})',
+    f'Com Sinistro\n{sinistro_counts[1]:,.0f} ({sinistro_counts[1]/total:.1%})',
 ]
 
-fig, ax = plt.subplots(figsize=(8, 6))
+fig, ax = plt.subplots(figsize=(7, 6))
 wedges, _ = ax.pie(
     sinistro_counts.values,
     labels=None,
@@ -410,24 +410,8 @@ wedges, _ = ax.pie(
     wedgeprops=dict(width=0.5, edgecolor='white', linewidth=2.5),
     startangle=90,
 )
-ax.text(0, 0, f'Taxa\n{taxa_sinistro:.1%}', ha='center', va='center',
-        fontsize=16, fontweight='bold', color='#1E293B')
-
-for wedge, label in zip(wedges, labels_ann):
-    ang = np.deg2rad((wedge.theta2 + wedge.theta1) / 2)
-    x, y = np.cos(ang), np.sin(ang)
-    ha = 'right' if x < 0 else 'left'
-    ax.annotate(
-        label,
-        xy=(0.75 * x, 0.75 * y),
-        xytext=(1.7 * x, 1.7 * y),
-        ha=ha, va='center', fontsize=11, fontweight='bold',
-        arrowprops=dict(arrowstyle='-', color='#555555', lw=1.2),
-        bbox=dict(boxstyle='round,pad=0.4', fc='white', ec='#CBD5E1', lw=1),
-    )
-
-ax.set_xlim(-2.5, 2.5)
-ax.set_ylim(-2, 2)
+ax.legend(wedges, labels_pie, loc='lower center', ncol=2,
+          bbox_to_anchor=(0.5, -0.08), fontsize=10, framealpha=0.9)
 ax.set_title('Distribuição da Variável Resposta (flSinistro)', pad=15)
 plt.tight_layout()
 save_fig(fig, 'fig_1_4_target_distribution')
