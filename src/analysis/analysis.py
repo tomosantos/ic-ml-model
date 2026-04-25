@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %pip install -q matplotlib seaborn scikit-learn xgboost mlflow databricks-feature-engineering
-dbutils.library.restartPython()
+# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
@@ -340,7 +340,7 @@ taxa_media_global = df_silver['sinistro'].mean()
 n_c = len(df_cultura)
 cum_cult = (df_cultura['total'].cumsum() / df_cultura['total'].sum() * 100).values
 
-fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(16, max(7, n_c * 0.38)))
+fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(16, 6))
 
 ax_l2 = ax_l.twinx()
 x_c = np.arange(n_c)
@@ -356,6 +356,7 @@ for i, val in enumerate(cum_cult):
                fontsize=7, color=PALETTE_LINE_CUM)
 ax_l.set_xticks(x_c)
 ax_l.set_xticklabels(df_cultura['cultura_fmt'], rotation=35, ha='right', fontsize=8)
+ax_l.set_xlim(-0.5, n_c - 0.5)
 ax_l.set_ylabel('Total de Apólices')
 ax_l.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f'{v:,.0f}'))
 ax_l2.set_ylabel('% Acumulado', color=PALETTE_LINE_CUM)
@@ -368,16 +369,18 @@ ax_l.set_title('Total de Apólices por Tipo de Cultura', pad=10)
 
 n_ct = len(df_cultura_taxa)
 y_ct = np.arange(n_ct)
+max_taxa_val = df_cultura_taxa['taxa'].max() * 100
 bars_cr = ax_r.barh(y_ct, df_cultura_taxa['taxa'] * 100,
                     color=[plt.cm.Greens(0.9 - 0.6 * i / max(n_ct - 1, 1)) for i in range(n_ct)],
                     height=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_cr, df_cultura_taxa['taxa'] * 100):
-    ax_r.text(val + 0.1, bar.get_y() + bar.get_height() / 2,
+    ax_r.text(val + max_taxa_val * 0.01, bar.get_y() + bar.get_height() / 2,
               f'{val:.1f}%', va='center', fontsize=8)
 ax_r.axvline(x=taxa_media_global * 100, color=PALETTE_LINE_CUM, linestyle='--', linewidth=1.5)
-ax_r.text(taxa_media_global * 100 + 0.1, 0.98,
+ax_r.text(taxa_media_global * 100 + max_taxa_val * 0.01, 0.98,
           f'Média: {taxa_media_global:.1%}', color=PALETTE_LINE_CUM, fontsize=8.5,
-          transform=ax_r.get_yaxis_transform(), va='top')
+          transform=ax_r.get_xaxis_transform(), va='top')
+ax_r.set_xlim(0, max_taxa_val * 1.18)
 ax_r.set_yticks(y_ct)
 ax_r.set_yticklabels(df_cultura_taxa['cultura_fmt'], fontsize=8)
 ax_r.set_xlabel('Taxa de Sinistro (%)')
