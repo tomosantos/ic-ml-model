@@ -68,13 +68,13 @@ sns.set_theme(style='white', font='DejaVu Sans')
 matplotlib.rcParams.update({
     'figure.dpi': 150,
     'savefig.dpi': 200,
-    'axes.titlesize': 13,
+    'axes.titlesize': 16,
     'axes.titleweight': 'bold',
-    'axes.labelsize': 11,
-    'xtick.labelsize': 9,
-    'ytick.labelsize': 9,
-    'legend.fontsize': 9,
-    'figure.titlesize': 14,
+    'axes.labelsize': 14,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 12,
+    'figure.titlesize': 18,
     'figure.titleweight': 'bold',
 })
 
@@ -216,14 +216,14 @@ bars = ax1.bar(x, df_anual['total_apolices'], color=PALETTE_MAIN,
                width=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars, df_anual['total_apolices']):
     ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() * 1.01,
-             f'{val:,.0f}', ha='center', va='bottom', fontsize=8, color='#1E293B')
+             f'{val:,.0f}', ha='center', va='bottom', fontsize=11, color='#1E293B')
 
 ax2.plot(x, df_anual['taxa_sinistro'], color=PALETTE_ACCENT, linestyle='--',
          linewidth=2.5, marker='o', markersize=7,
          markeredgecolor='#444', markeredgewidth=1, zorder=4)
 for i, val in enumerate(df_anual['taxa_sinistro']):
     ax2.text(i, val + 0.003, f'{val:.1%}', ha='center', va='bottom',
-             fontsize=8.5, color='#997700')
+             fontsize=11, color='#997700')
 
 ax1.set_xticks(x)
 ax1.set_xticklabels(anos)
@@ -276,12 +276,12 @@ bars_l = ax_l.bar(x_r, df_regiao['total'], color=_viridis(n),
                   width=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_l, df_regiao['total']):
     ax_l.text(bar.get_x() + bar.get_width() / 2, bar.get_height() * 1.01,
-              f'{val:,.0f}', ha='center', va='bottom', fontsize=8)
+              f'{val:,.0f}', ha='center', va='bottom', fontsize=11)
 ax_l2.plot(x_r, cum_reg, color=PALETTE_LINE_CUM, linestyle='--',
            linewidth=2, marker='o', markersize=6, zorder=4)
 for i, val in enumerate(cum_reg):
     ax_l2.text(i, val + 1.5, f'{val:.0f}%', ha='center', va='bottom',
-               fontsize=7.5, color=PALETTE_LINE_CUM)
+               fontsize=10, color=PALETTE_LINE_CUM)
 ax_l.set_xticks(x_r)
 ax_l.set_xticklabels(df_regiao['regiao'], rotation=15, ha='right')
 ax_l.set_ylabel('Total de Apólices')
@@ -301,7 +301,7 @@ bars_r = ax_r.barh(y_r, df_regiao_taxa['taxa'] * 100,
                    height=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_r, df_regiao_taxa['taxa'] * 100):
     ax_r.text(val + 0.1, bar.get_y() + bar.get_height() / 2,
-              f'{val:.1f}%', va='center', fontsize=8.5)
+              f'{val:.1f}%', va='center', fontsize=11)
 ax_r.set_yticks(y_r)
 ax_r.set_yticklabels(df_regiao_taxa['regiao'])
 ax_r.set_xlabel('Taxa de Sinistro (%)')
@@ -348,14 +348,14 @@ bars_cl = ax_l.bar(x_c, df_cultura['total'], color=_viridis(n_c),
                    width=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_cl, df_cultura['total']):
     ax_l.text(bar.get_x() + bar.get_width() / 2, bar.get_height() * 1.01,
-              f'{val:,.0f}', ha='center', va='bottom', fontsize=7)
+              f'{val:,.0f}', ha='center', va='bottom', fontsize=10)
 ax_l2.plot(x_c, cum_cult, color=PALETTE_LINE_CUM, linestyle='--',
            linewidth=2, marker='o', markersize=5, zorder=4)
 for i, val in enumerate(cum_cult):
     ax_l2.text(i, val + 1.5, f'{val:.0f}%', ha='center', va='bottom',
-               fontsize=7, color=PALETTE_LINE_CUM)
+               fontsize=10, color=PALETTE_LINE_CUM)
 ax_l.set_xticks(x_c)
-ax_l.set_xticklabels(df_cultura['cultura_fmt'], rotation=35, ha='right', fontsize=8)
+ax_l.set_xticklabels(df_cultura['cultura_fmt'], rotation=35, ha='right', fontsize=11)
 ax_l.set_xlim(-0.5, n_c - 0.5)
 ax_l.set_ylabel('Total de Apólices')
 ax_l.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f'{v:,.0f}'))
@@ -375,14 +375,14 @@ bars_cr = ax_r.barh(y_ct, df_cultura_taxa['taxa'] * 100,
                     height=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_cr, df_cultura_taxa['taxa'] * 100):
     ax_r.text(val + max_taxa_val * 0.01, bar.get_y() + bar.get_height() / 2,
-              f'{val:.1f}%', va='center', fontsize=8)
+              f'{val:.1f}%', va='center', fontsize=11)
 ax_r.axvline(x=taxa_media_global * 100, color=PALETTE_LINE_CUM, linestyle='--', linewidth=1.5)
 ax_r.text(taxa_media_global * 100 + max_taxa_val * 0.01, 0.98,
-          f'Média: {taxa_media_global:.1%}', color=PALETTE_LINE_CUM, fontsize=8.5,
+          f'Média: {taxa_media_global:.1%}', color=PALETTE_LINE_CUM, fontsize=11,
           transform=ax_r.get_xaxis_transform(), va='top')
 ax_r.set_xlim(0, max_taxa_val * 1.18)
 ax_r.set_yticks(y_ct)
-ax_r.set_yticklabels(df_cultura_taxa['cultura_fmt'], fontsize=8)
+ax_r.set_yticklabels(df_cultura_taxa['cultura_fmt'], fontsize=11)
 ax_r.set_xlabel('Taxa de Sinistro (%)')
 ax_r.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f'{v:.1f}%'))
 ax_r.invert_yaxis()
@@ -414,7 +414,7 @@ wedges, _ = ax.pie(
     startangle=90,
 )
 ax.legend(wedges, labels_pie, loc='lower center', ncol=2,
-          bbox_to_anchor=(0.5, -0.08), fontsize=10, framealpha=0.9)
+          bbox_to_anchor=(0.5, -0.08), fontsize=13, framealpha=0.9)
 ax.set_title('Distribuição da Variável Resposta (flSinistro)', pad=15)
 plt.tight_layout()
 save_fig(fig, 'fig_1_4_target_distribution')
@@ -505,13 +505,13 @@ bars_e = ax1.bar(x_e, df_eventos['pct'] * 100, color=_viridis(n_evt),
                  width=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_e, df_eventos['pct'] * 100):
     ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.2,
-             f'{val:.1f}%', ha='center', va='bottom', fontsize=8.5)
+             f'{val:.1f}%', ha='center', va='bottom', fontsize=11)
 
 ax2.plot(x_e, cum_evt, color=PALETTE_LINE_CUM, linestyle='--',
          linewidth=2, marker='o', markersize=6, zorder=4)
 for i, val in enumerate(cum_evt):
     ax2.text(i, val + 1, f'{val:.0f}%', ha='center', va='bottom',
-             fontsize=7.5, color=PALETTE_LINE_CUM)
+             fontsize=10, color=PALETTE_LINE_CUM)
 
 ax1.set_xticks(x_e)
 ax1.set_xticklabels(df_eventos['evento_fmt'], rotation=30, ha='right')
@@ -648,11 +648,11 @@ bars2 = ax.bar(x_m + width / 2, tuned_vals, width, color=vc[1],
 for bar, val in zip(bars1, baseline_vals):
     if not np.isnan(val):
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
-                f'{val:.3f}', ha='center', va='bottom', fontsize=9)
+                f'{val:.3f}', ha='center', va='bottom', fontsize=12)
 for bar, val in zip(bars2, tuned_vals):
     if not np.isnan(val):
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
-                f'{val:.3f}', ha='center', va='bottom', fontsize=9)
+                f'{val:.3f}', ha='center', va='bottom', fontsize=12)
 
 ax.set_xticks(x_m)
 ax.set_xticklabels(labels_plot)
@@ -803,7 +803,7 @@ ax2.hist(scores_oot, bins=50, density=True,
          color=PALETTE_MAIN, alpha=0.8, edgecolor='white', linewidth=0.3)
 ax2.axvline(x=scores_oot.mean(), color=PALETTE_LINE_CUM, linestyle='--', linewidth=1.5)
 ax2.text(scores_oot.mean() + 0.005, 0.95,
-         f'Média: {scores_oot.mean():.3f}', color=PALETTE_LINE_CUM, fontsize=9,
+         f'Média: {scores_oot.mean():.3f}', color=PALETTE_LINE_CUM, fontsize=12,
          transform=ax2.get_xaxis_transform(), va='top')
 ax2.set_xlabel('Probabilidade Predita de Sinistro')
 ax2.set_ylabel('Densidade')
@@ -948,16 +948,16 @@ bars_fi = ax1.bar(x_fi, df_top15_fi['importance_pct'] * 100, color=bar_colors,
                   width=0.65, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_fi, df_top15_fi['importance_pct'] * 100):
     ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.1,
-             f'{val:.1f}%', ha='center', va='bottom', fontsize=8)
+             f'{val:.1f}%', ha='center', va='bottom', fontsize=11)
 
 ax2.plot(x_fi, cum_fi, color=PALETTE_ACCENT, linestyle='--', linewidth=2.5,
          marker='o', markersize=7, markeredgecolor='#888', markeredgewidth=1, zorder=4)
 for i, val in enumerate(cum_fi):
     ax2.text(i, val + 0.8, f'{val:.0f}%', ha='center', va='bottom',
-             fontsize=7.5, color='#666')
+             fontsize=10, color='#666')
 
 ax1.set_xticks(x_fi)
-ax1.set_xticklabels(df_top15_fi['feature_fmt'], rotation=35, ha='right', fontsize=8.5)
+ax1.set_xticklabels(df_top15_fi['feature_fmt'], rotation=35, ha='right', fontsize=11)
 ax1.set_ylabel('Importância Relativa (%)')
 ax1.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f'{v:.1f}%'))
 ax2.set_ylabel('% Acumulado (todas variáveis)', color='#555')
@@ -974,7 +974,7 @@ handles_fi = [Patch(color=col, label=grp) for grp, col in GROUP_COLORS.items() i
 handles_fi.append(plt.Line2D([0], [0], color=PALETTE_ACCENT, linestyle='--',
                               marker='o', markeredgecolor='#888', label='% Acumulado'))
 ax1.legend(handles=handles_fi, title='Grupo', bbox_to_anchor=(1.12, 1),
-           loc='upper left', fontsize=8, title_fontsize=9)
+           loc='upper left', fontsize=11, title_fontsize=12)
 
 plt.tight_layout()
 save_fig(fig, 'fig_4_2_feature_importance')
@@ -999,13 +999,13 @@ bars_g = ax.barh(y_g, df_group_imp['Importância Agregada (%)'], color=colors_gr
                  height=0.6, edgecolor='white', linewidth=0.5, zorder=3)
 for bar, val in zip(bars_g, df_group_imp['Importância Agregada (%)']):
     ax.text(val + 0.1, bar.get_y() + bar.get_height() / 2,
-            f'{val:.1f}%', va='center', fontsize=9)
+            f'{val:.1f}%', va='center', fontsize=12)
 ax.set_yticks(y_g)
 ax.set_yticklabels(df_group_imp['Grupo'])
 ax.set_xlabel('Importância Agregada (%)')
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f'{v:.1f}%'))
 ax.invert_yaxis()
-ax.set_title('Importância por Grupo de Features', pad=12)
+ax.set_title('Importância por Grupo de Variáveis', pad=12)
 sns.despine(ax=ax)
 plt.tight_layout()
 save_fig(fig, 'fig_4_3_importance_by_group')
